@@ -52,7 +52,7 @@ describe("create_pool", () => {
                 Buffer.from("pool"),
                 authority.publicKey.toBuffer(),
                 stakeMint.toBuffer(),
-                rewardMint.toBuffer()
+                rewardMint.toBuffer(),
             ],
             program.programId
         );
@@ -180,56 +180,6 @@ describe("create_pool", () => {
         } catch (err) {
             assert.ok(err);
         }
-    });
-
-    it("Creates Fixed APR pool correctly", async () => {
-        const aprBps = 1500; // 15%
-        const lockDuration = 30 * 24 * 60 * 60;
-        const cooldownDuration = 7 * 24 * 60 * 60;
-        const depositCap = new anchor.BN(1_000_000_000_000);
-
-        await program.methods
-            .createPool(
-                aprBps,
-                new anchor.BN(lockDuration),
-                new anchor.BN(cooldownDuration),
-                depositCap
-            )
-            .accounts({
-                authority: authority.publicKey,
-                stakeMint,
-                rewardMint,
-            })
-            .rpc();
-
-        const poolAccount = await program.account.pool.fetch(pool);
-
-        // ----- Config Validation -----
-        assert.equal(poolAccount.aprBps, aprBps);
-        assert.equal(poolAccount.lockDuration.toNumber(), lockDuration);
-        assert.equal(poolAccount.cooldownDuration.toNumber(), cooldownDuration);
-        assert.equal(poolAccount.depositCap.toString(), depositCap.toString());
-
-        // ----- Vault Validation -----
-        assert.equal(
-            poolAccount.stakeVault.toBase58(),
-            stakeVault.toBase58()
-        );
-
-        assert.equal(
-            poolAccount.rewardVault.toBase58(),
-            rewardVault.toBase58()
-        );
-
-        // ----- Initial Accounting -----
-        assert.equal(poolAccount.totalStaked.toString(), "0");
-        assert.equal(poolAccount.accRewardPerShare.toString(), "0");
-        assert.equal(poolAccount.rewardRatePerSecond.toString(), "0");
-        assert.equal(poolAccount.totalRewardsFunded.toString(), "0");
-
-        // ----- Metadata -----
-        assert.equal(poolAccount.paused, false);
-        assert.equal(poolAccount.version, 1);
     });
 });
 

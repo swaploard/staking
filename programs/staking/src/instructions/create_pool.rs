@@ -9,11 +9,11 @@ pub struct CreatePool<'info> {
     pub authority: Signer<'info>,
 
     #[account(
-        init,
-        payer = authority,
-        space = 8 + GlobalConfig::INIT_SPACE,
-        seeds = [b"global"],
-        bump
+    init_if_needed,
+    payer = authority,
+    space = 8 + GlobalConfig::INIT_SPACE,
+    seeds = [b"global"],
+    bump
     )]
     pub global_config: Account<'info, GlobalConfig>,
 
