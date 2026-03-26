@@ -1,0 +1,8 @@
+[fuzz.metrics]
+enabled = true
+
+
+[[fuzz.programs]]
+address = "8zcJ4P4TrFNuL3p3BUNXtWP22rfPaVj5CJzMW4exgXen"
+program = "../target/deploy/staking.so"
+ 
