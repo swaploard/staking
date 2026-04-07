@@ -1,0 +1,100 @@
+import { StakingPool, UserPosition } from './types';
+
+export const MOCK_POOLS: StakingPool[] = [
+  {
+    id: 'pool-1',
+    name: 'Solana Core Staking',
+    description: 'Official Solana network staking pool with competitive rewards',
+    apy: 8.5,
+    tvl: 2500000,
+    totalStakers: 12500,
+    minimumStake: 0.5,
+    rewardToken: 'SOL',
+    status: 'active',
+  },
+  {
+    id: 'pool-2',
+    name: 'Marinade Liquid Staking',
+    description: 'Liquid staking pool with mSOL rewards. Unstake anytime.',
+    apy: 8.2,
+    tvl: 1800000,
+    totalStakers: 8300,
+    minimumStake: 0.1,
+    rewardToken: 'mSOL',
+    status: 'active',
+  },
+  {
+    id: 'pool-3',
+    name: 'Lido Staking Pool',
+    description: 'Lido stSOL staking with high liquidity and DeFi composability',
+    apy: 7.9,
+    tvl: 3200000,
+    totalStakers: 15000,
+    minimumStake: 0.01,
+    rewardToken: 'stSOL',
+    status: 'active',
+  },
+  {
+    id: 'pool-4',
+    name: 'Orca Whirlpool Staking',
+    description: 'DEX liquidity provider staking with governance token rewards',
+    apy: 12.5,
+    tvl: 950000,
+    totalStakers: 4200,
+    minimumStake: 1.0,
+    rewardToken: 'ORCA',
+    status: 'active',
+  },
+  {
+    id: 'pool-5',
+    name: 'Magic Eden Validator',
+    description: 'Premium validator staking pool with enhanced rewards',
+    apy: 9.3,
+    tvl: 1200000,
+    totalStakers: 5600,
+    minimumStake: 2.0,
+    rewardToken: 'SOL',
+    status: 'maintenance',
+  },
+  {
+    id: 'pool-6',
+    name: 'Raydium Acceleraytor',
+    description: 'Raydium governance token staking with exclusive benefits',
+    apy: 15.8,
+    tvl: 600000,
+    totalStakers: 2800,
+    minimumStake: 5.0,
+    rewardToken: 'RAY',
+    status: 'active',
+  },
+];
+
+export const MOCK_USER_POSITIONS: UserPosition[] = [
+  {
+    poolId: 'pool-1',
+    stakedAmount: 10.5,
+    rewardsEarned: 0.82,
+    claimedRewards: 2.45,
+    stakedAt: Date.now() - 30 * 24 * 60 * 60 * 1000, // 30 days ago
+    unstakedAt: null,
+    cooldownPeriod: 0,
+  },
+  {
+    poolId: 'pool-3',
+    stakedAmount: 25.0,
+    rewardsEarned: 1.94,
+    claimedRewards: 5.80,
+    stakedAt: Date.now() - 60 * 24 * 60 * 60 * 1000, // 60 days ago
+    unstakedAt: null,
+    cooldownPeriod: 0,
+  },
+  {
+    poolId: 'pool-4',
+    stakedAmount: 5.0,
+    rewardsEarned: 0.52,
+    claimedRewards: 1.20,
+    stakedAt: Date.now() - 14 * 24 * 60 * 60 * 1000, // 14 days ago
+    unstakedAt: null,
+    cooldownPeriod: 0,
+  },
+];
