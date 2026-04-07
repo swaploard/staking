@@ -25,17 +25,17 @@ export default function Dashboard() {
     <main className="min-h-screen">
       {/* Animated background */}
       <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950" />
-        <motion.div 
-          animate={{ 
+        <div className="absolute inset-0 bg-yellow-600" />
+        <motion.div
+          animate={{
             opacity: [0.3, 0.6, 0.3],
             scale: [1, 1.2, 1]
           }}
           transition={{ duration: 8, repeat: Infinity }}
           className="absolute top-0 left-1/4 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl"
         />
-        <motion.div 
-          animate={{ 
+        <motion.div
+          animate={{
             opacity: [0.2, 0.4, 0.2],
             scale: [1, 1.1, 1]
           }}
@@ -46,7 +46,7 @@ export default function Dashboard() {
 
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 relative z-10">
         {/* Header */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
@@ -57,7 +57,7 @@ export default function Dashboard() {
         </motion.div>
 
         {/* Quick Stats */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2, duration: 0.6 }}
@@ -102,7 +102,7 @@ export default function Dashboard() {
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           {/* Left Column - Positions */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3, duration: 0.6 }}
@@ -110,7 +110,7 @@ export default function Dashboard() {
           >
             <h2 className="mb-6 text-3xl font-bold text-white font-heading">Your Positions</h2>
             {userPositions_filled.length === 0 ? (
-              <motion.div 
+              <motion.div
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 className="rounded-2xl glass border-cyan-500/30 p-12 text-center hover:border-cyan-400/60 hover:neon-glow transition-all"
@@ -126,7 +126,7 @@ export default function Dashboard() {
                 </Link>
               </motion.div>
             ) : (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.4 }}
@@ -162,7 +162,7 @@ export default function Dashboard() {
         </div>
 
         {/* Call to Action */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5, duration: 0.6 }}

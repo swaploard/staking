@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Inter, Space_Grotesk } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { Header } from '@/components/common/header'
+import SolanaWalletProvider from "@/components/providers/wallet-provider"
 import './globals.css'
 
 const inter = Inter({ subsets: ["latin"] });
@@ -48,10 +49,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`${inter.className} antialiased bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950 text-white overflow-x-hidden`}>
-        <Header />
-        {children}
-        <Analytics />
+      <body className={`${inter.className} antialiased bg-yellow-500 text-white overflow-x-hidden`}>
+        <SolanaWalletProvider>
+          <Header />
+          {children}
+          <Analytics />
+        </SolanaWalletProvider>
       </body>
     </html>
   )
