@@ -25,7 +25,7 @@ export default function SolanaWalletProvider({
     children: React.ReactNode;
 }) {
 
-    const endpoint = clusterApiUrl("devnet");
+    const endpoint = process.env.NEXT_PUBLIC_RPC_URL ?? clusterApiUrl("devnet");
 
     const wallets = useMemo(
         () => [

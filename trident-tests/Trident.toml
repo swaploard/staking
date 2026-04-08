@@ -3,6 +3,6 @@ enabled = true
 
 
 [[fuzz.programs]]
-address = "8zcJ4P4TrFNuL3p3BUNXtWP22rfPaVj5CJzMW4exgXen"
+address = "8iVfFoXD5THP7XJKwSDGEyK72Basc983p8fDpzUK9brN"
 program = "../target/deploy/staking.so"
  
