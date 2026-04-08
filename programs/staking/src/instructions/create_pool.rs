@@ -19,7 +19,7 @@ pub struct CreatePool<'info> {
 
     /// GlobalConfig must already be initialized
     #[account(
-        seeds = [b"global"],
+        seeds = [b"global_v2"],
         bump = global_config.bump,
         constraint = global_config.version > 0,
         constraint = global_config.admin_authority == authority.key() @ ErrorCode::Unauthorized,

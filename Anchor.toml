@@ -6,13 +6,13 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-staking = "8zcJ4P4TrFNuL3p3BUNXtWP22rfPaVj5CJzMW4exgXen"
+staking = "8iVfFoXD5THP7XJKwSDGEyK72Basc983p8fDpzUK9brN"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
+cluster = "Devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]

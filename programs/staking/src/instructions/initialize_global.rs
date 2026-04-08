@@ -16,7 +16,7 @@ pub struct InitializeGlobal<'info> {
         init,
         payer = authority,
         space = 8 + GlobalConfig::INIT_SPACE,
-        seeds = [b"global"],
+        seeds = [b"global_v2"],
         bump
     )]
     pub global_config: Account<'info, GlobalConfig>,
