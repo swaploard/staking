@@ -25,7 +25,7 @@ export default function Dashboard() {
     <main className="min-h-screen">
       {/* Animated background */}
       <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
-        <div className="absolute inset-0 bg-yellow-600" />
+        <div className="absolute inset-0 bg-pink-300" />
         <motion.div
           animate={{
             opacity: [0.3, 0.6, 0.3],
@@ -52,8 +52,8 @@ export default function Dashboard() {
           transition={{ duration: 0.6 }}
           className="mb-12"
         >
-          <h1 className="text-5xl font-bold text-white font-heading gradient-text">Solana Staking</h1>
-          <p className="mt-3 text-slate-400 text-lg">Maximize your rewards with strategic staking across multiple pools</p>
+          <h1 className="text-5xl font-bold text-black font-sans">Solana Staking</h1>
+          <p className="mt-3 text-black font-sans text-lg">Maximize your rewards with strategic staking across multiple pools</p>
         </motion.div>
 
         {/* Quick Stats */}
@@ -108,7 +108,7 @@ export default function Dashboard() {
             transition={{ delay: 0.3, duration: 0.6 }}
             className="lg:col-span-2"
           >
-            <h2 className="mb-6 text-3xl font-bold text-white font-heading">Your Positions</h2>
+            <h2 className="mb-6 text-3xl font-bold text-black font-heading">Your Positions</h2>
             {userPositions_filled.length === 0 ? (
               <motion.div
                 initial={{ scale: 0.95, opacity: 0 }}

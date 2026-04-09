@@ -3,18 +3,39 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Wallet } from 'lucide-react';
-import { useStakingStore } from '@/lib/store';
 import { motion } from 'framer-motion';
+import { LAMPORTS_PER_SOL } from '@solana/web3.js';
 
-import { useWallet } from "@solana/wallet-adapter-react";
+import { useWallet, useConnection } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import { useEffect, useState } from 'react';
 
 export function Header() {
   const pathname = usePathname();
-  const { userWalletBalance } = useStakingStore();
-  const { publicKey, connected } = useWallet();
+  const { connected, publicKey } = useWallet();
+  const { connection } = useConnection();
 
-  console.log("is connected?", connected);
+  const [balance, setBalance] = useState<number | null>(null);
+
+  useEffect(() => {
+    const getBalance = async () => {
+      if (connected && publicKey) {
+        try {
+          const lamports = await connection.getBalance(publicKey);
+          const solBalance = lamports / LAMPORTS_PER_SOL;
+          setBalance(solBalance);
+        } catch (error) {
+          console.error('Error fetching balance:', error);
+          setBalance(null);
+        }
+      } else {
+        setBalance(null);
+      }
+    };
+
+    getBalance();
+  }, [connection, publicKey, connected]);
+
   return (
     <header className="glass border-b border-black sticky top-0 z-50 backdrop-blur-xl">
       <div className="px-4 py-4 sm:px-6 lg:px-8">
@@ -65,14 +86,14 @@ export function Header() {
           {/* Wallet Info */}
           {connected ? <motion.div
             whileHover={{ scale: 1.05 }}
-            className="flex items-center gap-3 glass border-cyan-500/30 rounded-xl px-4 py-2 hover:border-cyan-400/60 hover:neon-glow transition-all duration-300"
+            className="flex items-center gap-3 glass neon-glow rounded-xl px-4 py-2 hover:border-cyan-400/60 hover:neon-glow transition-all duration-300"
           >
             <motion.div animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 2, repeat: Infinity }}>
               <Wallet className="h-5 w-5 text-blue-600" />
             </motion.div>
             <div className="hidden sm:block text-right">
               <p className="text-xs font-semibold uppercase tracking-widest text-slate-900">Balance</p>
-              <p className="font-semibold text-white text-lg">{userWalletBalance.toFixed(2)} SOL</p>
+              <p className="font-semibold text-white text-lg">{balance?.toFixed(2) || '0.00'} SOL</p>
             </div>
           </motion.div> :
             <div className="wallet-header-button flex items-center">

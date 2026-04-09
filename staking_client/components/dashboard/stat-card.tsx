@@ -35,14 +35,14 @@ export function StatCard({ label, value, icon: Icon, subtext, variant = 'default
     >
       {/* Animated gradient background */}
       <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-      
+
       <div className="relative flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 group-hover:text-slate-300 transition-colors">{label}</p>
-          <p className="mt-3 text-4xl font-bold text-white font-heading">{value}</p>
-          {subtext && <p className="mt-2 text-xs text-slate-500 group-hover:text-slate-400 transition-colors">{subtext}</p>}
+          <p className="text-xs font-semibold uppercase tracking-widest text-slate-900 group-hover:text-slate-300 transition-colors">{label}</p>
+          <p className="mt-3 text-4xl font-bold text-black font-heading">{value}</p>
+          {subtext && <p className="mt-2 text-xs text-slate-900 group-hover:text-slate-300 transition-colors">{subtext}</p>}
         </div>
-        <motion.div 
+        <motion.div
           whileHover={{ rotate: 10, scale: 1.1 }}
           className={`rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-purple-500/30 p-3 ${variantGlow}`}
         >

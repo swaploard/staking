@@ -26,7 +26,7 @@ pub mod staking {
 
     /// Returns the program ID for staking
     pub fn program_id() -> Pubkey {
-        pubkey!("8zcJ4P4TrFNuL3p3BUNXtWP22rfPaVj5CJzMW4exgXen")
+        pubkey!("8iVfFoXD5THP7XJKwSDGEyK72Basc983p8fDpzUK9brN")
     }
 
     // ------------------------------------------------------------------------

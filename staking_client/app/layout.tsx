@@ -49,7 +49,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`${inter.className} antialiased bg-yellow-500 text-white overflow-x-hidden`}>
+      <body className={`${inter.className} antialiased bg-pink-500 text-white overflow-x-hidden`}>
         <SolanaWalletProvider>
           <Header />
           {children}

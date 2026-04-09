@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 
 // ============================================================================
-// GlobalConfig — singleton PDA (seeds: ["global"])
+// GlobalConfig — singleton PDA (seeds: ["global_v2"])
 // ============================================================================
 #[account]
 #[derive(InitSpace)]

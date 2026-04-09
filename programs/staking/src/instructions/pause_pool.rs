@@ -13,7 +13,7 @@ pub struct PausePool<'info> {
     pub authority: Signer<'info>,
 
     #[account(
-        seeds = [b"global"],
+        seeds = [b"global_v2"],
         bump = global_config.bump,
         constraint = (
             global_config.admin_authority == authority.key() ||
