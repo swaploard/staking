@@ -1,4 +1,5 @@
 use crate::errors::ErrorCode;
+use crate::events::PoolCreated;
 use crate::state::*;
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Token, TokenAccount};
@@ -109,6 +110,21 @@ pub fn create_pool(
     // -------- Safety --------
     pool.bump = ctx.bumps.pool;
     pool.version = 1;
+
+    emit!(PoolCreated {
+        pool: pool.key(),
+        pool_id,
+        authority: ctx.accounts.authority.key(),
+        stake_mint: pool.stake_mint,
+        reward_mint: pool.reward_mint,
+        stake_vault: pool.stake_vault,
+        reward_vault: pool.reward_vault,
+        apr_bps: pool.apr_bps,
+        lock_duration: pool.lock_duration,
+        cooldown_duration: pool.cooldown_duration,
+        deposit_cap: pool.deposit_cap,
+        timestamp: pool.last_update_timestamp,
+    });
 
     msg!("Pool {} created. Stake: {}, Reward: {}", pool_id,
          pool.stake_mint, pool.reward_mint);

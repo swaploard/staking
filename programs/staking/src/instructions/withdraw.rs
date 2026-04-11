@@ -1,4 +1,5 @@
 use crate::errors::ErrorCode;
+use crate::events::Withdrawn;
 use crate::state::*;
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
@@ -87,6 +88,16 @@ pub fn withdraw(ctx: Context<Withdraw>) -> Result<()> {
     user_position.pending_withdrawal = 0;
     user_position.cooldown_start = 0;
     user_position.unlock_timestamp = 0;
+
+    emit!(Withdrawn {
+        pool: pool.key(),
+        pool_id: pool.pool_id,
+        user: user_position.owner,
+        withdrawn_amount: withdrawal_amount,
+        user_amount_after: user_position.amount,
+        pending_withdrawal_after: user_position.pending_withdrawal,
+        timestamp: now,
+    });
 
     msg!(
         "User {} withdrew {} tokens from pool {}",

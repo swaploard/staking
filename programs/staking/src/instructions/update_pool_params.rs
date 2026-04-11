@@ -1,4 +1,5 @@
 use crate::errors::ErrorCode;
+use crate::events::PoolParamsUpdated;
 use crate::state::*;
 use crate::utils;
 use anchor_lang::prelude::*;
@@ -60,6 +61,17 @@ pub fn update_pool_params(
     if let Some(cap) = deposit_cap {
         pool.deposit_cap = cap;
     }
+
+    emit!(PoolParamsUpdated {
+        pool: pool.key(),
+        pool_id: pool.pool_id,
+        authority: ctx.accounts.authority.key(),
+        apr_bps,
+        lock_duration,
+        cooldown_duration,
+        deposit_cap,
+        timestamp: now,
+    });
 
     msg!("Pool {} params updated", pool.pool_id);
     Ok(())

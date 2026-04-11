@@ -1,4 +1,5 @@
 use crate::errors::ErrorCode;
+use crate::events::RewardsFunded;
 use crate::state::*;
 use crate::utils;
 use anchor_lang::prelude::*;
@@ -85,6 +86,17 @@ pub fn fund_rewards(
     pool.reward_rate_per_second = amount
         .checked_div(duration_seconds)
         .ok_or(ErrorCode::MathOverflow)?;
+
+    emit!(RewardsFunded {
+        pool: pool.key(),
+        pool_id: pool.pool_id,
+        authority: ctx.accounts.authority.key(),
+        funding_amount: amount,
+        duration_seconds,
+        reward_rate_per_second: pool.reward_rate_per_second,
+        total_rewards_funded_after: pool.total_rewards_funded,
+        timestamp: now,
+    });
 
     msg!(
         "Pool {} funded with {} tokens over {} seconds. Rate: {}/s",

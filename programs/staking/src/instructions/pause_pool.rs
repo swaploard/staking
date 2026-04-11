@@ -1,4 +1,5 @@
 use crate::errors::ErrorCode;
+use crate::events::PoolPauseToggled;
 use crate::state::*;
 use anchor_lang::prelude::*;
 
@@ -32,12 +33,30 @@ pub struct PausePool<'info> {
 
 pub fn pause_pool(ctx: Context<PausePool>) -> Result<()> {
     ctx.accounts.pool.paused = true;
+
+    emit!(PoolPauseToggled {
+        pool: ctx.accounts.pool.key(),
+        pool_id: ctx.accounts.pool.pool_id,
+        authority: ctx.accounts.authority.key(),
+        is_paused: true,
+        timestamp: Clock::get()?.unix_timestamp,
+    });
+
     msg!("Pool {} paused", ctx.accounts.pool.pool_id);
     Ok(())
 }
 
 pub fn unpause_pool(ctx: Context<PausePool>) -> Result<()> {
     ctx.accounts.pool.paused = false;
+
+    emit!(PoolPauseToggled {
+        pool: ctx.accounts.pool.key(),
+        pool_id: ctx.accounts.pool.pool_id,
+        authority: ctx.accounts.authority.key(),
+        is_paused: false,
+        timestamp: Clock::get()?.unix_timestamp,
+    });
+
     msg!("Pool {} unpaused", ctx.accounts.pool.pool_id);
     Ok(())
 }

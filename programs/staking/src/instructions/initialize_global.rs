@@ -1,4 +1,5 @@
 use crate::errors::ErrorCode;
+use crate::events::GlobalInitialized;
 use crate::state::*;
 use anchor_lang::prelude::*;
 
@@ -40,6 +41,13 @@ pub fn initialize_global(
     config.treasury = treasury;
     config.bump = ctx.bumps.global_config;
     config.version = 1;
+
+    emit!(GlobalInitialized {
+        admin_authority: config.admin_authority,
+        pause_authority: config.pause_authority,
+        treasury: config.treasury,
+        timestamp: Clock::get()?.unix_timestamp,
+    });
 
     msg!("GlobalConfig initialized. Admin: {}", config.admin_authority);
     Ok(())

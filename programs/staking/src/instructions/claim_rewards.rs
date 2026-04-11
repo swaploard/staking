@@ -1,4 +1,5 @@
 use crate::errors::ErrorCode;
+use crate::events::RewardsClaimed;
 use crate::state::*;
 use crate::utils::{self, PRECISION};
 use anchor_lang::prelude::*;
@@ -120,6 +121,15 @@ pub fn claim_rewards(ctx: Context<ClaimRewards>) -> Result<()> {
         .ok_or(ErrorCode::MathOverflow)?
         .checked_div(PRECISION)
         .ok_or(ErrorCode::MathOverflow)?;
+
+    emit!(RewardsClaimed {
+        pool: pool.key(),
+        pool_id: pool.pool_id,
+        user: user_position.owner,
+        claimed_amount: total_claimable,
+        total_rewards_distributed_after: pool.rewards_distributed,
+        timestamp: now,
+    });
 
     msg!(
         "User {} claimed {} reward tokens from pool {}",

@@ -1,4 +1,5 @@
 use crate::errors::ErrorCode;
+use crate::events::EmergencyWithdrawn;
 use crate::state::*;
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
@@ -96,6 +97,17 @@ pub fn emergency_withdraw(ctx: Context<EmergencyWithdraw>) -> Result<()> {
     user_position.pending_withdrawal = 0;
     user_position.cooldown_start = 0;
     user_position.unlock_timestamp = 0;
+
+    emit!(EmergencyWithdrawn {
+        pool: pool.key(),
+        pool_id: pool.pool_id,
+        user: user_position.owner,
+        returned_amount: total_return,
+        user_amount_after: user_position.amount,
+        pending_withdrawal_after: user_position.pending_withdrawal,
+        pool_total_staked_after: pool.total_staked,
+        timestamp: Clock::get()?.unix_timestamp,
+    });
 
     msg!(
         "User {} emergency withdrew {} tokens from pool {}. Rewards forfeited.",

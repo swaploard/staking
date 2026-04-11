@@ -1,4 +1,5 @@
 use crate::errors::ErrorCode;
+use crate::events::Staked;
 use crate::state::*;
 use crate::utils::{self, PRECISION};
 use anchor_lang::prelude::*;
@@ -131,6 +132,16 @@ pub fn stake(ctx: Context<Stake>, amount: u64) -> Result<()> {
         .total_staked
         .checked_add(amount)
         .ok_or(ErrorCode::MathOverflow)?;
+
+    emit!(Staked {
+        pool: pool.key(),
+        pool_id: pool.pool_id,
+        user: user_position.owner,
+        amount,
+        user_amount_after: user_position.amount,
+        pool_total_staked_after: pool.total_staked,
+        timestamp: now,
+    });
 
     msg!(
         "User {} staked {} tokens in pool {}. Total staked: {}",

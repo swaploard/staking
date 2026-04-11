@@ -1,4 +1,5 @@
 use crate::errors::ErrorCode;
+use crate::events::UnstakeRequested;
 use crate::state::*;
 use crate::utils::{self, PRECISION};
 use anchor_lang::prelude::*;
@@ -105,6 +106,18 @@ pub fn request_unstake(ctx: Context<RequestUnstake>, amount: u64) -> Result<()> 
         .total_staked
         .checked_sub(amount)
         .ok_or(ErrorCode::MathOverflow)?;
+
+    emit!(UnstakeRequested {
+        pool: pool.key(),
+        pool_id: pool.pool_id,
+        user: user_position.owner,
+        amount,
+        user_amount_after: user_position.amount,
+        pending_withdrawal_after: user_position.pending_withdrawal,
+        unlock_timestamp: user_position.unlock_timestamp,
+        pool_total_staked_after: pool.total_staked,
+        timestamp: now,
+    });
 
     msg!(
         "User {} requested unstake of {} from pool {}. Cooldown until: {}",
