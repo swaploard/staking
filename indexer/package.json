@@ -1,0 +1,41 @@
+{
+    "name": "staking-indexer",
+    "version": "1.0.0",
+    "type": "module",
+    "description": "Solana staking program indexer with Postgres backend",
+    "main": "dist/index.js",
+    "scripts": {
+        "dev": "node --import tsx src/index.ts",
+        "build": "tsc",
+        "start": "node dist/index.js",
+        "db:generate": "prisma generate",
+        "db:migrate": "prisma migrate deploy",
+        "db:migrate:dev": "prisma migrate dev",
+        "db:studio": "prisma studio",
+        "lint": "prettier --check 'src/**/*.ts'",
+        "lint:fix": "prettier --write 'src/**/*.ts'"
+    },
+    "keywords": [
+        "solana",
+        "indexer",
+        "postgres"
+    ],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "@coral-xyz/anchor": "^0.32.1",
+        "@solana/web3.js": "^1.98.4",
+        "@prisma/client": "^5.7.0",
+        "dotenv": "^16.3.1",
+        "p-limit": "^5.0.0",
+        "pino": "^8.17.2",
+        "pino-pretty": "^10.2.3"
+    },
+    "devDependencies": {
+        "@types/node": "^20.10.5",
+        "typescript": "^5.7.3",
+        "prisma": "^5.7.0",
+        "tsx": "^4.7.0",
+        "prettier": "^3.1.1"
+    }
+}

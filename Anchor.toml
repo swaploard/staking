@@ -8,21 +8,29 @@ skip-lint = false
 [programs.localnet]
 staking = "8iVfFoXD5THP7XJKwSDGEyK72Basc983p8fDpzUK9brN"
 
+[programs.devnet]
+staking = "8iVfFoXD5THP7XJKwSDGEyK72Basc983p8fDpzUK9brN"
+
 [registry]
 url = "https://api.apr.dev"
 
+# Localnet for `anchor test`: fresh ledger, no public-RPC 429s, and no stale global PDA on devnet.
+# Deploy to devnet with: anchor deploy --provider.cluster devnet
 [provider]
-cluster = "Devnet"
+cluster = "Localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 \"tests/**/*.ts\""
 
 [test]
-startup_wait = 10000
+# Cloning SPL Token from devnet can take a few seconds after the validator process starts.
+startup_wait = 20000
 
 [test.validator]
 url = "https://api.devnet.solana.com"
+# Agave 3.x rejects 0.0.0.0 for gossip (UnspecifiedIpAddr); Anchor defaults to 0.0.0.0 without this.
+bind_address = "127.0.0.1"
 
 [[test.validator.clone]]
 address = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"

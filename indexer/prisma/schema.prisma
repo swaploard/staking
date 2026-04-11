@@ -1,0 +1,161 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Tracks which tx signatures have been processed to prevent duplicates
+// Uses claim-first approach: INSERT WITH status='processing' ON CONFLICT DO NOTHING
+// Worker reclaims stale entries (updated_at > timeout threshold)
+model ProcessedSignature {
+  id        Int     @id @default(autoincrement())
+  signature String  @unique @db.VarChar(88)
+  slot      BigInt
+  status    String  @default("processing") // 'processing' | 'completed'
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  // Index for checking staleness during reclaim
+  @@index([status, updatedAt])
+  @@index([slot])
+}
+
+// Tracks slot continuity - ensures no gaps in observed slots
+model SlotProgress {
+  slot         BigInt  @id
+  firstSeenAt  DateTime @default(now())
+  processed    Boolean @default(false)
+  source       String  // 'ws' | 'getBlocks' | 'tx_ingest'
+  @@index([processed])
+  @@index([firstSeenAt])
+}
+
+// Tracks indexer cursor position for resumable ingestion
+model IndexerCursor {
+  id               Int     @id @default(autoincrement())
+  lastProcessedSlot BigInt  @default(0)
+  lastProcessedSignature String?
+  lastProcessedIxIndex Int?
+  updatedAt        DateTime @updatedAt
+}
+
+// Staking pools on-chain state
+model Pool {
+  id               String  @id // Pubkey as string
+  authority        String
+  tokenMint        String
+  vaultBump        Int
+  stakedAmount     BigInt  @default(0)
+  rewardAmount     BigInt  @default(0)
+  rewardPerShare   BigInt  @default(0)
+  totalShares      BigInt  @default(0)
+  lockUpPeriod     BigInt
+  startTime        BigInt
+  endTime          BigInt?
+  lastUpdatedSlot  BigInt
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  @@index([authority])
+  @@index([lastUpdatedSlot])
+}
+
+// User staking positions
+model UserPosition {
+  id              String  @id // Pubkey as string
+  pool            String
+  userAuthority   String
+  shares          BigInt
+  unlockedShares  BigInt  @default(0)
+  depositAmount   BigInt
+  depositTime     BigInt
+  rewardDebt      BigInt  @default(0)
+  lastUpdatedSlot BigInt
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  @@index([userAuthority])
+  @@index([pool])
+  @@index([lastUpdatedSlot])
+}
+
+// Transaction activity - parsed instruction/event data
+// Partitioned by slot for scalability
+model TxActivity {
+  id              BigInt  @id @default(autoincrement())
+  signature       String  @db.VarChar(88)
+  slot            BigInt
+  blockTime       DateTime?
+  ixIndex         Int     // Instruction index in tx
+  eventVersion    Int     @default(1)
+  eventType       String  // 'Stake' | 'Unstake' | 'Claim' | 'Emergency' etc.
+  userAuthority   String?
+  poolId          String?
+  shares          BigInt?
+  amount          BigInt?
+  timestamp       BigInt?
+  status          String  @default("confirmed") // 'confirmed' | 'finalized' | 'failed'
+  historical      Boolean @default(false) // true if from backfill
+  metadata        Json?   // Extra event data
+  createdAt       DateTime @default(now())
+
+  // Ensure idempotency: same signature + ix_index processed only once
+  @@unique([signature, ixIndex])
+  @@index([slot])
+  @@index([blockTime])
+  @@index([status])
+  @@index([userAuthority])
+  @@index([poolId])
+  @@index([eventType])
+  @@index([eventVersion])
+  @@index([historical])
+}
+
+// Vault reconciliation state
+model VaultHistory {
+  id              BigInt  @id @default(autoincrement())
+  poolId          String
+  slot            BigInt
+  expectedBalance BigInt
+  actualBalance   BigInt
+  difference      BigInt
+  reconciled      Boolean @default(false)
+  tolerance       BigInt  // Acceptable difference in lamports
+  createdAt       DateTime @default(now())
+  @@index([poolId])
+  @@index([slot])
+  @@index([reconciled])
+}
+
+// Alerts generated during indexing
+model Alert {
+  id          BigInt  @id @default(autoincrement())
+  alertType   String  // 'reconciliation_diff' | 'slot_lag' | 'duplicate_tx' etc.
+  severity    String  @default("info") // 'info' | 'warning' | 'error'
+  message     String
+  metadata    Json?
+  processed   Boolean @default(false)
+  createdAt   DateTime @default(now())
+  @@index([alertType])
+  @@index([severity])
+  @@index([processed])
+  @@index([createdAt])
+}
+
+// Incoming transaction queue for processing
+model TxQueue {
+  id          BigInt  @id @default(autoincrement())
+  signature   String  @unique @db.VarChar(88)
+  slot        BigInt
+  rawTx       Json    // Full tx data
+  retryCount  Int     @default(0)
+  status      String  @default("pending") // 'pending' | 'processing' | 'completed' | 'failed'
+  error       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  @@index([status])
+  @@index([slot])
+}

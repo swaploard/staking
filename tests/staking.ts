@@ -137,7 +137,7 @@ describe("staking", () => {
 
     // Derive PDAs
     [globalConfig] = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("global")],
+      [Buffer.from("global_v2")],
       program.programId
     );
 
@@ -274,6 +274,7 @@ describe("staking", () => {
         )
         .accounts({
           authority: admin.publicKey,
+          pool,
           adminRewardAta,
           rewardVault,
         })
