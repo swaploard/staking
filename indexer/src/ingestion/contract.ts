@@ -58,7 +58,7 @@ export class IngestionContract {
     ): Promise<IngestionResult> {
         try {
             // Start transaction
-            const result = await this.prisma.$transaction(async (tx: PrismaClient) => {
+            const result = await this.prisma.$transaction(async (tx) => {
                 // 1. Try to insert new processed_signature record
                 const inserted = await tx.processedSignature.create({
                     data: {
@@ -119,7 +119,7 @@ export class IngestionContract {
 
                     // Attempt to reclaim (update stale entry back to processing)
                     try {
-                        await this.prisma.$transaction(async (tx: PrismaClient) => {
+                        await this.prisma.$transaction(async (tx) => {
                             await tx.processedSignature.update({
                                 where: { signature },
                                 data: {
@@ -220,9 +220,9 @@ export class IngestionContract {
 
             // Step 2: Process transaction within a database transaction
             try {
-                await this.prisma.$transaction(async (tx: PrismaClient) => {
+                await this.prisma.$transaction(async (tx) => {
                     // Call the processor function to parse and record tx data
-                    await processorFn(data, tx);
+                    await processorFn(data, tx as any);
 
                     // Step 3: Mark as completed
                     // Re-fetch and update to ensure atomicity

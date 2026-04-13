@@ -5,6 +5,7 @@ import {
     RpcResponseAndContext,
     SignatureStatus,
     TransactionResponse,
+    PublicKey,
 } from "@solana/web3.js";
 import { Logger } from "../logger";
 
@@ -150,8 +151,14 @@ export class RpcClient {
                     // Call the appropriate method based on the method string
                     const methodLower = method.toLowerCase();
 
-                    if (methodLower === "getconfirmedsignaturesfortheprogramaddress") {
-                        result = (await connection.getProgramAccounts(params[0], {
+                    if (methodLower === "getprogramaccounts") {
+                        const programId = new PublicKey(params[0]);
+                        result = (await connection.getProgramAccounts(programId, {
+                            commitment,
+                        })) as T;
+                    } else if (methodLower === "getconfirmedsignaturesfortheprogramaddress") {
+                        const programId = new PublicKey(params[0]);
+                        result = (await connection.getProgramAccounts(programId, {
                             commitment,
                         })) as T;
                     } else if (methodLower === "gettransaction") {

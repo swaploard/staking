@@ -1,11 +1,10 @@
 {
     "name": "staking-indexer",
     "version": "1.0.0",
-    "type": "module",
     "description": "Solana staking program indexer with Postgres backend",
     "main": "dist/index.js",
     "scripts": {
-        "dev": "node --import tsx src/index.ts",
+        "dev": "tsx src/index.ts",
         "build": "tsc",
         "start": "node dist/index.js",
         "db:generate": "prisma generate",

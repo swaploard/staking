@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import { Logger } from "./logger";
 import { RpcClient } from "./rpc/client";
 import { TransactionIngestor } from "./ingestion/parser";
+import { AccountSyncJob } from "./jobs/accountSync";
 import pLimit from "p-limit";
 import dotenv from "dotenv";
 
@@ -24,7 +25,9 @@ class StakingIndexer {
     private prisma!: PrismaClient;
     private rpcClient!: RpcClient;
     private ingestor!: TransactionIngestor;
+    private accountSync!: AccountSyncJob;
     private running: boolean = false;
+    private accountSyncInterval: NodeJS.Timeout | null = null;
 
     async initialize(): Promise<void> {
         logger.info("Initializing Staking Indexer...");
@@ -74,6 +77,14 @@ class StakingIndexer {
             processingTimeoutMs
         );
         logger.info("Transaction ingestor initialized");
+
+        // Initialize account sync job
+        this.accountSync = new AccountSyncJob(
+            this.prisma,
+            this.rpcClient,
+            stakingProgramId
+        );
+        logger.info("Account sync job initialized");
 
         // Run initialization checks
         await this.runInitializationChecks();
@@ -160,11 +171,63 @@ class StakingIndexer {
     }
 
     /**
+     * Sync all on-chain accounts (pools and user positions)
+     */
+    async syncAccounts(): Promise<void> {
+        try {
+            logger.info("Starting account sync...");
+            await this.accountSync.sync();
+            logger.info("✓ Account sync completed successfully");
+        } catch (error) {
+            logger.error("Account sync failed:", error);
+            throw error;
+        }
+    }
+
+    /**
+     * Start scheduled account sync (every N milliseconds)
+     */
+    startScheduledSync(intervalMs: number = 60000): void {
+        if (this.accountSyncInterval) {
+            logger.warn("Account sync already scheduled");
+            return;
+        }
+
+        logger.info(`Starting scheduled account sync every ${intervalMs}ms`);
+
+        // Run immediately once
+        this.syncAccounts().catch((error) => {
+            logger.error("Initial sync failed:", error);
+        });
+
+        // Then scheduled
+        this.accountSyncInterval = setInterval(() => {
+            this.syncAccounts().catch((error) => {
+                logger.error("Scheduled sync failed:", error);
+            });
+        }, intervalMs);
+    }
+
+    /**
+     * Stop scheduled account sync
+     */
+    stopScheduledSync(): void {
+        if (this.accountSyncInterval) {
+            clearInterval(this.accountSyncInterval);
+            this.accountSyncInterval = null;
+            logger.info("Scheduled account sync stopped");
+        }
+    }
+
+    /**
      * Clean up resources
      */
     async shutdown(): Promise<void> {
         logger.info("Shutting down indexer...");
         this.running = false;
+
+        // Stop scheduled sync
+        this.stopScheduledSync();
 
         try {
             await this.prisma.$disconnect();
@@ -211,6 +274,17 @@ async function main() {
             } else if (args[0] === "batch" && args[1]) {
                 // Process batch: node dist/index.js batch <sig1> <sig2> ...
                 await indexer.processBatch(args.slice(1));
+            } else if (args[0] === "sync-accounts") {
+                // Sync accounts once: node dist/index.js sync-accounts
+                await indexer.syncAccounts();
+            } else if (args[0] === "start-sync") {
+                // Start scheduled sync: node dist/index.js start-sync [intervalMs]
+                const intervalMs = parseInt(args[1], 10) || 60000;
+                logger.info(`Starting account sync scheduler (interval: ${intervalMs}ms)`);
+                indexer.startScheduledSync(intervalMs);
+                // Don't exit - keep running
+                logger.info("Account sync is running. Press Ctrl+C to stop.");
+                await new Promise(() => { }); // Keep process alive
             } else if (args[0] === "status") {
                 // Show status
                 const status = indexer.getStatus();
@@ -219,13 +293,17 @@ async function main() {
         } else {
             // Interactive mode (for testing)
             logger.info("Indexer ready. Use CLI commands:");
-            logger.info("  process <signature>  - Process a single transaction");
-            logger.info("  batch <sig1> <sig2>  - Process multiple transactions");
-            logger.info("  status               - Show status");
-            logger.info("\nExample:");
+            logger.info("  process <signature>     - Process a single transaction");
+            logger.info("  batch <sig1> <sig2>     - Process multiple transactions");
+            logger.info("  sync-accounts           - Sync accounts once");
+            logger.info("  start-sync [intervalMs] - Start scheduled account sync (default: 60000ms)");
+            logger.info("  status                  - Show status");
+            logger.info("\nExamples:");
             logger.info(
                 '  node dist/index.js process 3Abcdef123... (base58 tx signature)'
             );
+            logger.info("  node dist/index.js sync-accounts");
+            logger.info("  node dist/index.js start-sync 60000");
         }
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
