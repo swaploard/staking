@@ -190,6 +190,41 @@ export class IngestionContract {
         }
     }
 
+    async getStatus(
+        signature: string
+    ): Promise<"not_seen" | "processing" | "completed"> {
+        const row = await this.prisma.processedSignature.findUnique({
+            where: { signature },
+        });
+
+        if (!row) {
+            return "not_seen";
+        }
+
+        return row.status as "processing" | "completed";
+    }
+
+    async findStaleEntries(
+        limit: number = 100
+    ): Promise<Array<{ signature: string; ageMs: number }>> {
+        const cutoff = new Date(Date.now() - this.processingTimeoutMs);
+        const rows = await this.prisma.processedSignature.findMany({
+            where: {
+                status: "processing",
+                updatedAt: {
+                    lt: cutoff,
+                },
+            },
+            orderBy: { updatedAt: "asc" },
+            take: limit,
+        });
+
+        return rows.map((row) => ({
+            signature: row.signature,
+            ageMs: Date.now() - row.updatedAt.getTime(),
+        }));
+    }
+
     /**
      * Process a transaction with the ingestion contract guarantee
      * Handles the full flow: claim → process → record
@@ -267,45 +302,6 @@ export class IngestionContract {
             where: { signature },
         });
         return record?.status === "completed";
-    }
-
-    /**
-     * Get processing status of a signature
-     */
-    async getStatus(
-        signature: string
-    ): Promise<"not_seen" | "processing" | "completed"> {
-        const record = await this.prisma.processedSignature.findUnique({
-            where: { signature },
-        });
-        if (!record) return "not_seen";
-        return record.status as "processing" | "completed";
-    }
-
-    /**
-     * Find stale processing entries that should be reclaimed
-     */
-    async findStaleEntries(limit: number = 100): Promise<Array<{ signature: string; ageMs: number }>> {
-        const staleThreshold = new Date(Date.now() - this.processingTimeoutMs);
-
-        const stale = await this.prisma.processedSignature.findMany({
-            where: {
-                status: "processing",
-                updatedAt: {
-                    lt: staleThreshold,
-                },
-            },
-            take: limit,
-            select: {
-                signature: true,
-                updatedAt: true,
-            },
-        });
-
-        return stale.map((s: { signature: string; updatedAt: Date }) => ({
-            signature: s.signature,
-            ageMs: Date.now() - s.updatedAt.getTime(),
-        }));
     }
 
     /**

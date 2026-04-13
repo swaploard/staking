@@ -2,6 +2,8 @@ import { PrismaClient } from "@prisma/client";
 import { TransactionResponse } from "@solana/web3.js";
 import { Logger } from "../logger";
 import { IngestionContract } from "./contract";
+import { AlertEngine } from "../alerts/engine";
+import { StakingProgramCodec } from "../program/stakingCodec";
 
 export interface ParsedInstruction {
     index: number;
@@ -37,10 +39,12 @@ export interface ParsedTxData {
 export class TransactionParser {
     private logger: Logger;
     private stakingProgramId: string;
+    private codec: StakingProgramCodec;
 
     constructor(stakingProgramId: string) {
         this.logger = new Logger("TransactionParser");
         this.stakingProgramId = stakingProgramId;
+        this.codec = StakingProgramCodec.load(stakingProgramId);
     }
 
     /**
@@ -119,48 +123,26 @@ export class TransactionParser {
      * Look for "Program log: " entries that match event signatures
      */
     private extractAnchorEvents(tx: TransactionResponse): ParsedEvent[] {
-        const events: ParsedEvent[] = [];
         const logs = tx.meta?.logMessages || [];
-
-        // Event discriminators (first 8 bytes of event struct hash)
-        // These would be populated from your program's IDL
-        const eventSignatures: Record<string, string> = {
-            "0x123abc": "StakeEvent", // placeholder
-            "0x456def": "UnstakeEvent",
-            "0x789ghi": "ClaimEvent",
-            "0xabcjkl": "EmergencyEvent",
-        };
-
-        for (let i = 0; i < logs.length; i++) {
-            const log = logs[i];
-
-            // Look for "Program log: " entries
-            if (log.includes("Program log:")) {
-                // Try to parse event data from log
-                try {
-                    // This is a simplified extraction - in reality, you'd decode the event data
-                    // from the Program Data account or from transaction logs more carefully
-                    const match = log.match(/Program log: (\w+)=(.*)/);
-                    if (match && match[1] && match[2]) {
-                        const eventType = match[1];
-                        try {
-                            const data = JSON.parse(match[2]);
-                            events.push({
-                                type: eventType,
-                                version: 1,
-                                data,
-                            });
-                        } catch {
-                            // Skip JSON parse errors
-                        }
-                    }
-                } catch (error) {
-                    // Continue on parse errors
-                }
-            }
+        if (!this.codec.isLoaded()) {
+            return [];
         }
 
-        return events;
+        const expectedEventCount = this.codec.countProgramDataLogs(logs);
+        const decoded = this.codec.parseEvents(logs);
+
+        if (expectedEventCount > 0 && decoded.length !== expectedEventCount) {
+            this.logger.warn(
+                `Anchor event decode was partial (${decoded.length}/${expectedEventCount}); falling back to instructions`
+            );
+            return [];
+        }
+
+        return decoded.map((event) => ({
+            type: event.name,
+            version: event.version,
+            data: event.data,
+        }));
     }
 
     /**
@@ -262,6 +244,7 @@ export class TransactionIngestor {
     private logger: Logger;
     private parser: TransactionParser;
     private contract: IngestionContract;
+    private alertEngine: AlertEngine;
 
     constructor(
         private prisma: PrismaClient,
@@ -272,6 +255,7 @@ export class TransactionIngestor {
         this.logger = new Logger("TransactionIngestor");
         this.parser = new TransactionParser(stakingProgramId);
         this.contract = new IngestionContract(prisma, processingTimeoutMs);
+        this.alertEngine = new AlertEngine();
     }
 
     /**
@@ -340,26 +324,55 @@ export class TransactionIngestor {
      */
     private async recordTxActivity(data: any, tx: any): Promise<void> {
         const { signature, slot, blockTime, events, instructions } = data;
+        const createdActivities: Array<{
+            signature: string;
+            slot: bigint;
+            eventType: string;
+            amount?: bigint | null;
+            userAuthority?: string | null;
+            poolId?: string | null;
+            historical?: boolean;
+            metadata?: any;
+        }> = [];
 
         // Record events (highest priority)
         if (events && events.length > 0) {
-            for (const event of events) {
+            for (let index = 0; index < events.length; index++) {
+                const event = events[index];
+                const ixIndex = index;
+                const amountValue =
+                    event.data?.amount ??
+                    event.data?.claimedAmount ??
+                    event.data?.fundingAmount ??
+                    event.data?.withdrawnAmount ??
+                    event.data?.returnedAmount;
+
                 await tx.txActivity.create({
                     data: {
                         signature,
                         slot,
                         blockTime,
-                        ixIndex: 0, // Events don't have ix index
+                        ixIndex,
                         eventVersion: event.version,
                         eventType: event.type,
                         userAuthority: event.data?.user || event.data?.userAuthority,
                         poolId: event.data?.pool || event.data?.poolId,
                         shares: event.data?.shares ? BigInt(event.data.shares) : null,
-                        amount: event.data?.amount ? BigInt(event.data.amount) : null,
+                        amount: amountValue ? BigInt(amountValue) : null,
                         timestamp: data.timestamp,
                         status: "confirmed",
                         metadata: event.data,
                     },
+                });
+
+                createdActivities.push({
+                    signature,
+                    slot,
+                    eventType: event.type,
+                    amount: amountValue ? BigInt(amountValue) : null,
+                    userAuthority: event.data?.user || event.data?.userAuthority,
+                    poolId: event.data?.pool || event.data?.poolId,
+                    metadata: event.data,
                 });
             }
         }
@@ -384,8 +397,17 @@ export class TransactionIngestor {
                         status: "confirmed",
                     },
                 });
+
+                createdActivities.push({
+                    signature,
+                    slot,
+                    eventType,
+                    metadata: ix.parsed,
+                });
             }
         }
+
+        await this.alertEngine.enqueueActivityAlerts(tx, createdActivities);
 
         this.logger.debug(
             `[${signature}] Recorded ${events.length + (instructions.length || 0)} activities`

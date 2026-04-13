@@ -38,6 +38,7 @@ model SlotProgress {
 // Tracks indexer cursor position for resumable ingestion
 model IndexerCursor {
   id               Int     @id @default(autoincrement())
+  jobName          String  @unique @default("default")
   lastProcessedSlot BigInt  @default(0)
   lastProcessedSignature String?
   lastProcessedIxIndex Int?
@@ -118,6 +119,7 @@ model TxActivity {
 model VaultHistory {
   id              BigInt  @id @default(autoincrement())
   poolId          String
+  vaultType       String  @default("stake")
   slot            BigInt
   expectedBalance BigInt
   actualBalance   BigInt
@@ -143,6 +145,24 @@ model Alert {
   @@index([severity])
   @@index([processed])
   @@index([createdAt])
+}
+
+// Queue isolation for alert delivery / retries
+model AlertQueue {
+  id          BigInt   @id @default(autoincrement())
+  alertId     BigInt?  @unique
+  alertType   String
+  payload     Json?
+  status      String   @default("pending") // 'pending' | 'processing' | 'completed' | 'failed'
+  retryCount  Int      @default(0)
+  historical  Boolean  @default(false)
+  lastError   String?
+  availableAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status, availableAt])
+  @@index([alertType])
 }
 
 // Incoming transaction queue for processing

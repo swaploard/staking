@@ -6,6 +6,8 @@ import {
     SignatureStatus,
     TransactionResponse,
     PublicKey,
+    AccountInfo,
+    TokenAmount,
 } from "@solana/web3.js";
 import { Logger } from "../logger";
 
@@ -173,10 +175,29 @@ export class RpcClient {
                         result = (await connection.getSlot(commitment)) as T;
                     } else if (methodLower === "getblocks") {
                         result = (await connection.getBlocks(params[0], params[1])) as T;
+                    } else if (methodLower === "getblock") {
+                        result = (await connection.getBlock(params[0], params[1])) as T;
+                    } else if (methodLower === "getsignaturesforaddress") {
+                        const address = new PublicKey(params[0]);
+                        result = (await connection.getSignaturesForAddress(address, params[1])) as T;
                     } else if (methodLower === "getsignaturestatuses") {
                         const signatures = params[0] as string[];
                         const response = await connection.getSignatureStatuses(signatures);
                         result = response as T;
+                    } else if (methodLower === "getmultipleaccountsinfo") {
+                        const pubkeys = (params[0] as string[]).map(
+                            (pubkey) => new PublicKey(pubkey)
+                        );
+                        result = (await connection.getMultipleAccountsInfo(
+                            pubkeys,
+                            commitment
+                        )) as T;
+                    } else if (methodLower === "gettokenaccountbalance") {
+                        const pubkey = new PublicKey(params[0]);
+                        result = (await connection.getTokenAccountBalance(
+                            pubkey,
+                            commitment === "processed" ? "confirmed" : commitment
+                        )) as T;
                     } else {
                         // Fallback to raw RPC call
                         result = (await (connection as any)._rpcRequest(
@@ -303,6 +324,35 @@ export class RpcClient {
     }
 
     /**
+     * Get a single block
+     */
+    async getBlock(
+        slot: number,
+        blockOptions: any = {}
+    ): Promise<any> {
+        return this.call(
+            "getBlock",
+            [slot, { commitment: "confirmed", maxSupportedTransactionVersion: 0, ...blockOptions }],
+            blockOptions
+        );
+    }
+
+    /**
+     * Get signatures for address
+     */
+    async getSignaturesForAddress(
+        address: string | PublicKey,
+        signaturesOptions: any = {},
+        options: RpcCallOptions = {}
+    ): Promise<ConfirmedSignatureInfo[]> {
+        return this.call(
+            "getSignaturesForAddress",
+            [typeof address === "string" ? address : address.toBase58(), signaturesOptions],
+            options
+        ) as Promise<ConfirmedSignatureInfo[]>;
+    }
+
+    /**
      * Get program accounts (alternative to getProgramAccounts)
      */
     async getProgramAccounts(
@@ -314,6 +364,32 @@ export class RpcClient {
             [programId],
             options
         );
+    }
+
+    async getMultipleAccountsInfo(
+        addresses: Array<string | PublicKey>,
+        options: RpcCallOptions = {}
+    ): Promise<Array<AccountInfo<Buffer> | null>> {
+        return this.call(
+            "getMultipleAccountsInfo",
+            [
+                addresses.map((address) =>
+                    typeof address === "string" ? address : address.toBase58()
+                ),
+            ],
+            options
+        ) as Promise<Array<AccountInfo<Buffer> | null>>;
+    }
+
+    async getTokenAccountBalance(
+        address: string | PublicKey,
+        options: RpcCallOptions = {}
+    ): Promise<RpcResponseAndContext<TokenAmount>> {
+        return this.call(
+            "getTokenAccountBalance",
+            [typeof address === "string" ? address : address.toBase58()],
+            options
+        ) as Promise<RpcResponseAndContext<TokenAmount>>;
     }
 
     /**

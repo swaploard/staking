@@ -3,6 +3,12 @@ import { Logger } from "./logger";
 import { RpcClient } from "./rpc/client";
 import { TransactionIngestor } from "./ingestion/parser";
 import { AccountSyncJob } from "./jobs/accountSync";
+import { GapFillJob } from "./jobs/gapFill";
+import { runIdempotencyTest } from "./jobs/idempotencyTest";
+import { ReconcilerJob } from "./jobs/reconciler";
+import { AlertProcessorJob } from "./jobs/alertProcessor";
+import { PartitionTunerJob } from "./jobs/partitionTuner";
+import { FinalizerJob } from "./jobs/finalizer";
 import pLimit from "p-limit";
 import dotenv from "dotenv";
 
@@ -26,6 +32,11 @@ class StakingIndexer {
     private rpcClient!: RpcClient;
     private ingestor!: TransactionIngestor;
     private accountSync!: AccountSyncJob;
+    private gapFillJob!: GapFillJob;
+    private reconcilerJob!: ReconcilerJob;
+    private alertProcessorJob!: AlertProcessorJob;
+    private partitionTuner!: PartitionTunerJob;
+    private finalizerJob!: FinalizerJob;
     private running: boolean = false;
     private accountSyncInterval: NodeJS.Timeout | null = null;
 
@@ -85,6 +96,31 @@ class StakingIndexer {
             stakingProgramId
         );
         logger.info("Account sync job initialized");
+
+        // Initialize gap fill job
+        this.gapFillJob = new GapFillJob(
+            this.prisma,
+            this.rpcClient,
+            this.ingestor,
+            stakingProgramId
+        );
+        logger.info("Gap fill job initialized");
+
+        this.reconcilerJob = new ReconcilerJob(
+            this.prisma,
+            this.rpcClient,
+            stakingProgramId
+        );
+        logger.info("Reconciler job initialized");
+
+        this.alertProcessorJob = new AlertProcessorJob(this.prisma);
+        logger.info("Alert processor initialized");
+
+        this.partitionTuner = new PartitionTunerJob(this.prisma);
+        logger.info("Partition tuner initialized");
+
+        this.finalizerJob = new FinalizerJob(this.prisma, this.rpcClient);
+        logger.info("Finalizer job initialized");
 
         // Run initialization checks
         await this.runInitializationChecks();
@@ -220,14 +256,96 @@ class StakingIndexer {
     }
 
     /**
+     * Start gap fill job
+     */
+    startGapFill(intervalMs: number = 30000): void {
+        this.gapFillJob.start(intervalMs).catch(error => {
+            logger.error("GapFillJob failed:", error);
+        });
+    }
+
+    /**
+     * Stop gap fill job
+     */
+    stopGapFill(): void {
+        if (this.gapFillJob) {
+            this.gapFillJob.stop();
+        }
+    }
+
+    async runReconciler(): Promise<void> {
+        await this.reconcilerJob.runOnce();
+    }
+
+    startReconciler(intervalMs: number = 300000): void {
+        this.reconcilerJob.start(intervalMs).catch((error) => {
+            logger.error("ReconcilerJob failed:", error);
+        });
+    }
+
+    stopReconciler(): void {
+        if (this.reconcilerJob) {
+            this.reconcilerJob.stop();
+        }
+    }
+
+    async runAlertProcessor(batchSize: number = 20): Promise<void> {
+        await this.alertProcessorJob.runOnce(batchSize);
+    }
+
+    startAlertProcessor(intervalMs: number = 15000): void {
+        this.alertProcessorJob.start(intervalMs).catch((error) => {
+            logger.error("AlertProcessorJob failed:", error);
+        });
+    }
+
+    stopAlertProcessor(): void {
+        if (this.alertProcessorJob) {
+            this.alertProcessorJob.stop();
+        }
+    }
+
+    async runFinalizer(batchSize: number = 100): Promise<void> {
+        await this.finalizerJob.runOnce(batchSize);
+    }
+
+    startFinalizer(intervalMs: number = 30000): void {
+        this.finalizerJob.start(intervalMs).catch((error) => {
+            logger.error("FinalizerJob failed:", error);
+        });
+    }
+
+    stopFinalizer(): void {
+        if (this.finalizerJob) {
+            this.finalizerJob.stop();
+        }
+    }
+
+    async tunePartitions(
+        startSlot: bigint,
+        endSlot: bigint,
+        partitionSize: bigint = 1_000_000n
+    ): Promise<void> {
+        await this.partitionTuner.ensureFuturePartitions(
+            startSlot,
+            endSlot,
+            partitionSize
+        );
+    }
+
+    /**
      * Clean up resources
      */
     async shutdown(): Promise<void> {
         logger.info("Shutting down indexer...");
         this.running = false;
 
-        // Stop scheduled sync
+        // Stop scheduled jobs
         this.stopScheduledSync();
+        this.stopGapFill();
+        this.stopReconciler();
+        this.stopAlertProcessor();
+        this.stopFinalizer();
 
         try {
             await this.prisma.$disconnect();
@@ -285,6 +403,47 @@ async function main() {
                 // Don't exit - keep running
                 logger.info("Account sync is running. Press Ctrl+C to stop.");
                 await new Promise(() => { }); // Keep process alive
+            } else if (args[0] === "start-gap-fill") {
+                // Start gap fill scheduler: node dist/index.js start-gap-fill [intervalMs]
+                const intervalMs = parseInt(args[1], 10) || 30000;
+                logger.info(`Starting gap fill scheduler (interval: ${intervalMs}ms)`);
+                indexer.startGapFill(intervalMs);
+                logger.info("Gap fill is running. Press Ctrl+C to stop.");
+                await new Promise(() => { }); // Keep process alive
+            } else if (args[0] === "test-idempotency") {
+                logger.info("Running idempotency load test...");
+                await runIdempotencyTest();
+            } else if (args[0] === "reconcile") {
+                await indexer.runReconciler();
+            } else if (args[0] === "start-reconciler") {
+                const intervalMs = parseInt(args[1], 10) || 300000;
+                logger.info(`Starting reconciler (interval: ${intervalMs}ms)`);
+                indexer.startReconciler(intervalMs);
+                logger.info("Reconciler is running. Press Ctrl+C to stop.");
+                await new Promise(() => {});
+            } else if (args[0] === "process-alerts") {
+                const batchSize = parseInt(args[1], 10) || 20;
+                await indexer.runAlertProcessor(batchSize);
+            } else if (args[0] === "start-alerts") {
+                const intervalMs = parseInt(args[1], 10) || 15000;
+                logger.info(`Starting alert processor (interval: ${intervalMs}ms)`);
+                indexer.startAlertProcessor(intervalMs);
+                logger.info("Alert processor is running. Press Ctrl+C to stop.");
+                await new Promise(() => {});
+            } else if (args[0] === "finalize") {
+                const batchSize = parseInt(args[1], 10) || 100;
+                await indexer.runFinalizer(batchSize);
+            } else if (args[0] === "start-finalizer") {
+                const intervalMs = parseInt(args[1], 10) || 30000;
+                logger.info(`Starting finalizer (interval: ${intervalMs}ms)`);
+                indexer.startFinalizer(intervalMs);
+                logger.info("Finalizer is running. Press Ctrl+C to stop.");
+                await new Promise(() => {});
+            } else if (args[0] === "tune-partitions") {
+                const startSlot = BigInt(args[1] || "0");
+                const endSlot = BigInt(args[2] || args[1] || "0");
+                const partitionSize = BigInt(args[3] || "1000000");
+                await indexer.tunePartitions(startSlot, endSlot, partitionSize);
             } else if (args[0] === "status") {
                 // Show status
                 const status = indexer.getStatus();
@@ -297,6 +456,15 @@ async function main() {
             logger.info("  batch <sig1> <sig2>     - Process multiple transactions");
             logger.info("  sync-accounts           - Sync accounts once");
             logger.info("  start-sync [intervalMs] - Start scheduled account sync (default: 60000ms)");
+            logger.info("  start-gap-fill [gapMs]  - Start slot continuity guard and gap fill (default: 30000ms)");
+            logger.info("  reconcile               - Run one reconciliation pass");
+            logger.info("  start-reconciler [ms]   - Start scheduled reconciliation");
+            logger.info("  process-alerts [n]      - Deliver queued alerts once");
+            logger.info("  start-alerts [ms]       - Start the alert processor loop");
+            logger.info("  finalize [n]            - Finalize up to n confirmed signatures");
+            logger.info("  start-finalizer [ms]    - Start the finalizer loop");
+            logger.info("  tune-partitions a b [s] - Ensure tx_activity indexes / partitions");
+            logger.info("  test-idempotency        - Run concurrent ingestion test to verify idempotency");
             logger.info("  status                  - Show status");
             logger.info("\nExamples:");
             logger.info(
@@ -304,6 +472,9 @@ async function main() {
             );
             logger.info("  node dist/index.js sync-accounts");
             logger.info("  node dist/index.js start-sync 60000");
+            logger.info("  node dist/index.js start-gap-fill 30000");
+            logger.info("  node dist/index.js reconcile");
+            logger.info("  node dist/index.js finalize 100");
         }
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
