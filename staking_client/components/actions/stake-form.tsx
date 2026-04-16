@@ -1,10 +1,12 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useStakingStore } from '@/lib/store';
-import { StakingPool } from '@/lib/types';
-import { Button } from '@/components/ui/button';
-import { AlertCircle, Check, Loader2 } from 'lucide-react';
+import { useState } from "react";
+import { useStakingStore } from "@/lib/store";
+import { useSolanaAdapter } from "@/lib/hooks/use-solana-adapter";
+import { StakingPool } from "@/lib/types";
+import { Button } from "@/components/ui/button";
+import { AlertCircle, Check, Loader2 } from "lucide-react";
+import { PublicKey } from "@solana/web3.js";
 
 interface StakeFormProps {
   poolId: string;
@@ -14,14 +16,15 @@ interface StakeFormProps {
 
 export function StakeForm({ poolId, pool, availableBalance }: StakeFormProps) {
   const { stakeTokens, actionState, resetActionState } = useStakingStore();
-  const [amount, setAmount] = useState('');
-  const [error, setError] = useState('');
+  const adapter = useSolanaAdapter();
+  const [amount, setAmount] = useState("");
+  const [error, setError] = useState("");
 
   const handleStake = async () => {
     const stakeAmount = parseFloat(amount);
 
     if (isNaN(stakeAmount) || stakeAmount <= 0) {
-      setError('Please enter a valid amount');
+      setError("Please enter a valid amount");
       return;
     }
 
@@ -31,17 +34,32 @@ export function StakeForm({ poolId, pool, availableBalance }: StakeFormProps) {
     }
 
     if (stakeAmount > availableBalance) {
-      setError('Insufficient balance');
+      setError("Insufficient balance");
       return;
     }
 
-    setError('');
-    await stakeTokens(poolId, stakeAmount);
+    setError("");
+
+    if (adapter) {
+      try {
+        const stakeMint = new PublicKey(pool.rewardToken);
+        const txHash = await adapter.stakeTokens({
+          poolId: parseInt(poolId),
+          amount: stakeAmount,
+          stakeMint,
+        });
+        await stakeTokens(poolId, stakeAmount, txHash);
+      } catch (err: any) {
+        setError(err.message || "Transaction failed");
+      }
+    } else {
+      await stakeTokens(poolId, stakeAmount);
+    }
   };
 
   const setMaxAmount = () => {
     setAmount(Math.max(availableBalance - 0.1, 0).toFixed(2));
-    setError('');
+    setError("");
   };
 
   const calculateRewards = () => {
@@ -52,17 +70,21 @@ export function StakeForm({ poolId, pool, availableBalance }: StakeFormProps) {
 
   return (
     <div className="space-y-6">
-      {actionState.type === 'stake' && actionState.success && (
+      {actionState.type === "stake" && actionState.success && (
         <div className="rounded-lg border border-emerald-700/50 bg-emerald-500/10 p-4 flex items-center gap-3">
           <Check className="h-5 w-5 text-emerald-400" />
           <div>
-            <p className="font-semibold text-emerald-300">Staking successful!</p>
-            <p className="text-sm text-emerald-200">{amount} SOL staked in {pool.name}</p>
+            <p className="font-semibold text-emerald-300">
+              Staking successful!
+            </p>
+            <p className="text-sm text-emerald-200">
+              {amount} SOL staked in {pool.name}
+            </p>
           </div>
         </div>
       )}
 
-      {actionState.type === 'stake' && actionState.error && (
+      {actionState.type === "stake" && actionState.error && (
         <div className="rounded-lg border border-red-700/50 bg-red-500/10 p-4 flex items-center gap-3">
           <AlertCircle className="h-5 w-5 text-red-400" />
           <p className="text-sm text-red-200">{actionState.error}</p>
@@ -77,17 +99,19 @@ export function StakeForm({ poolId, pool, availableBalance }: StakeFormProps) {
       )}
 
       <div>
-        <label className="block text-sm font-medium text-slate-300 mb-2">Amount to Stake (SOL)</label>
+        <label className="block text-sm font-medium text-slate-300 mb-2">
+          Amount to Stake (SOL)
+        </label>
         <div className="relative">
           <input
             type="number"
             value={amount}
             onChange={(e) => {
               setAmount(e.target.value);
-              setError('');
+              setError("");
             }}
             placeholder={`Min ${pool.minimumStake} SOL`}
-            disabled={actionState.type === 'stake' && actionState.isLoading}
+            disabled={actionState.type === "stake" && actionState.isLoading}
             className="w-full rounded-lg border border-slate-700 bg-slate-800/50 px-4 py-3 text-white placeholder-slate-500 transition-all hover:border-slate-600 focus:border-blue-600 focus:outline-none disabled:opacity-50"
           />
           <button
@@ -98,7 +122,8 @@ export function StakeForm({ poolId, pool, availableBalance }: StakeFormProps) {
           </button>
         </div>
         <p className="mt-2 text-xs text-slate-400">
-          Available: {availableBalance.toFixed(2)} SOL • Min: {pool.minimumStake} SOL
+          Available: {availableBalance.toFixed(2)} SOL • Min:{" "}
+          {pool.minimumStake} SOL
         </p>
       </div>
 
@@ -106,11 +131,15 @@ export function StakeForm({ poolId, pool, availableBalance }: StakeFormProps) {
         <div className="rounded-lg bg-white/5 p-4 space-y-2">
           <div className="flex justify-between text-sm">
             <span className="text-slate-400">Pool APY</span>
-            <span className="text-white font-semibold">{pool.apy.toFixed(1)}%</span>
+            <span className="text-white font-semibold">
+              {pool.apy.toFixed(1)}%
+            </span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-slate-400">Est. Daily Rewards</span>
-            <span className="text-emerald-400 font-semibold">{calculateRewards().toFixed(4)} SOL</span>
+            <span className="text-emerald-400 font-semibold">
+              {calculateRewards().toFixed(4)} SOL
+            </span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-slate-400">Est. Yearly Rewards</span>
@@ -126,26 +155,26 @@ export function StakeForm({ poolId, pool, availableBalance }: StakeFormProps) {
           await handleStake();
           if (!error && parseFloat(amount) > 0) {
             setTimeout(() => {
-              setAmount('');
+              setAmount("");
               resetActionState();
             }, 2000);
           }
         }}
-        disabled={actionState.type === 'stake' && actionState.isLoading}
+        disabled={actionState.type === "stake" && actionState.isLoading}
         className="w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white transition-all hover:bg-blue-500 disabled:bg-blue-600/50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
       >
-        {actionState.type === 'stake' && actionState.isLoading ? (
+        {actionState.type === "stake" && actionState.isLoading ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" />
             Processing...
           </>
-        ) : actionState.type === 'stake' && actionState.success ? (
+        ) : actionState.type === "stake" && actionState.success ? (
           <>
             <Check className="h-4 w-4" />
             Success!
           </>
         ) : (
-          'Stake Now'
+          "Stake Now"
         )}
       </button>
     </div>
