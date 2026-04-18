@@ -1,38 +1,157 @@
 export function Footer() {
   return (
-    <footer className="border-t border-slate-700 bg-gradient-to-r from-slate-900 to-slate-800 mt-16">
-      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+    <footer
+      style={{
+        backgroundColor: 'var(--bg-secondary)',
+        borderTop: '1px solid var(--border-default)',
+        marginTop: '48px',
+      }}
+    >
+      <div
+        style={{
+          maxWidth: '72rem',
+          margin: '0 auto',
+          padding: '32px 24px',
+        }}
+      >
         <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
           <div>
-            <h3 className="text-lg font-semibold text-white mb-4">Solana Staking</h3>
-            <p className="text-sm text-slate-400">
+            <h4
+              style={{
+                fontSize: '15px',
+                fontWeight: 560,
+                color: 'var(--text-primary)',
+                marginBottom: '8px',
+              }}
+            >
+              Solana Staking
+            </h4>
+            <p
+              style={{
+                fontSize: '13px',
+                color: 'var(--text-secondary)',
+                lineHeight: 1.6,
+              }}
+            >
               Maximize your SOL rewards through strategic staking across verified pools.
             </p>
           </div>
 
           <div>
-            <h4 className="text-sm font-semibold text-white mb-3">Quick Links</h4>
-            <ul className="space-y-2 text-sm text-slate-400">
-              <li><a href="/" className="hover:text-white transition-colors">Dashboard</a></li>
-              <li><a href="/pools" className="hover:text-white transition-colors">Explore Pools</a></li>
+            <h4
+              style={{
+                fontSize: '13px',
+                fontWeight: 560,
+                color: 'var(--text-primary)',
+                marginBottom: '12px',
+              }}
+            >
+              Quick Links
+            </h4>
+            <ul style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <li>
+                <a
+                  href="/"
+                  style={{
+                    fontSize: '13px',
+                    color: 'var(--text-tertiary)',
+                    transition: 'color 0.15s',
+                    textDecoration: 'none',
+                  }}
+                  className="hover:!text-[var(--text-primary)]"
+                >
+                  Dashboard
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/pools"
+                  style={{
+                    fontSize: '13px',
+                    color: 'var(--text-tertiary)',
+                    transition: 'color 0.15s',
+                    textDecoration: 'none',
+                  }}
+                  className="hover:!text-[var(--text-primary)]"
+                >
+                  Explore Pools
+                </a>
+              </li>
             </ul>
           </div>
 
           <div>
-            <h4 className="text-sm font-semibold text-white mb-3">Resources</h4>
-            <ul className="space-y-2 text-sm text-slate-400">
-              <li><a href="#" className="hover:text-white transition-colors">Documentation</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Community</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Support</a></li>
+            <h4
+              style={{
+                fontSize: '13px',
+                fontWeight: 560,
+                color: 'var(--text-primary)',
+                marginBottom: '12px',
+              }}
+            >
+              Resources
+            </h4>
+            <ul style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <li>
+                <a
+                  href="#"
+                  style={{
+                    fontSize: '13px',
+                    color: 'var(--text-tertiary)',
+                    transition: 'color 0.15s',
+                    textDecoration: 'none',
+                  }}
+                  className="hover:!text-[var(--text-primary)]"
+                >
+                  Documentation
+                </a>
+              </li>
+              <li>
+                <a
+                  href="#"
+                  style={{
+                    fontSize: '13px',
+                    color: 'var(--text-tertiary)',
+                    transition: 'color 0.15s',
+                    textDecoration: 'none',
+                  }}
+                  className="hover:!text-[var(--text-primary)]"
+                >
+                  Community
+                </a>
+              </li>
+              <li>
+                <a
+                  href="#"
+                  style={{
+                    fontSize: '13px',
+                    color: 'var(--text-tertiary)',
+                    transition: 'color 0.15s',
+                    textDecoration: 'none',
+                  }}
+                  className="hover:!text-[var(--text-primary)]"
+                >
+                  Support
+                </a>
+              </li>
             </ul>
           </div>
         </div>
 
-        <div className="mt-8 border-t border-slate-700 pt-8 text-center text-sm text-slate-400">
-          <p>
+        <div
+          style={{
+            marginTop: '24px',
+            borderTop: '1px solid var(--border-default)',
+            paddingTop: '24px',
+            textAlign: 'center',
+          }}
+        >
+          <p style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
             This is a demonstration dashboard. Always do your own research before staking real assets.
           </p>
-          <p className="mt-4">© 2024 Solana Staking Dashboard. All rights reserved.</p>
+          <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '8px' }}>
+            © 2024 Solana Staking Dashboard. All rights reserved.
+          </p>
         </div>
       </div>
     </footer>

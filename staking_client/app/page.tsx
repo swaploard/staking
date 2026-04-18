@@ -22,46 +22,35 @@ export default function Dashboard() {
   const userPositions_filled = userPositions.filter((pos) => pos.stakedAmount > 0);
 
   return (
-    <main className="min-h-screen">
-      {/* Animated background */}
-      <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
-        <div className="absolute inset-0 bg-pink-300" />
-        <motion.div
-          animate={{
-            opacity: [0.3, 0.6, 0.3],
-            scale: [1, 1.2, 1]
-          }}
-          transition={{ duration: 8, repeat: Infinity }}
-          className="absolute top-0 left-1/4 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl"
-        />
-        <motion.div
-          animate={{
-            opacity: [0.2, 0.4, 0.2],
-            scale: [1, 1.1, 1]
-          }}
-          transition={{ duration: 10, repeat: Infinity, delay: 1 }}
-          className="absolute bottom-0 right-1/4 w-96 h-96 bg-cyan-600/20 rounded-full blur-3xl"
-        />
-      </div>
-
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 relative z-10">
+    <main className="min-h-screen" style={{ backgroundColor: 'var(--bg-primary)' }}>
+      <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
         {/* Header */}
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="mb-12"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4 }}
+          style={{ marginBottom: '32px' }}
         >
-          <h1 className="text-5xl font-bold text-black font-sans">Solana Staking</h1>
-          <p className="mt-3 text-black font-sans text-lg">Maximize your rewards with strategic staking across multiple pools</p>
+          <h1>Solana Staking</h1>
+          <p
+            style={{
+              marginTop: '8px',
+              fontSize: '15px',
+              lineHeight: 1.6,
+              color: 'var(--text-secondary)',
+            }}
+          >
+            Maximize your rewards with strategic staking across multiple pools
+          </p>
         </motion.div>
 
         {/* Quick Stats */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.2, duration: 0.6 }}
-          className="mb-12 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4"
+          transition={{ delay: 0.1, duration: 0.4 }}
+          className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
+          style={{ marginBottom: '32px' }}
         >
           <StatCard
             label="Wallet Balance"
@@ -105,48 +94,67 @@ export default function Dashboard() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.3, duration: 0.6 }}
+            transition={{ delay: 0.15, duration: 0.4 }}
             className="lg:col-span-2"
           >
-            <h2 className="mb-6 text-3xl font-bold text-black font-heading">Your Positions</h2>
+            <h2 style={{ marginBottom: '16px' }}>Your Positions</h2>
             {userPositions_filled.length === 0 ? (
-              <motion.div
-                initial={{ scale: 0.95, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                className="rounded-2xl glass border-cyan-500/30 p-12 text-center hover:border-cyan-400/60 hover:neon-glow transition-all"
+              <div
+                className="animate-fade-in"
+                style={{
+                  backgroundColor: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-default)',
+                  borderRadius: '8px',
+                  padding: '48px 24px',
+                  textAlign: 'center',
+                }}
               >
-                <div className="mb-4 text-5xl animate-float">📍</div>
-                <h3 className="text-lg font-semibold text-white">No Staking Positions Yet</h3>
-                <p className="mt-2 text-slate-400">Start earning rewards by staking in a pool</p>
+                <div style={{ fontSize: '40px', marginBottom: '16px' }}>📍</div>
+                <h3>No Staking Positions Yet</h3>
+                <p
+                  style={{
+                    marginTop: '8px',
+                    color: 'var(--text-secondary)',
+                    fontSize: '14px',
+                  }}
+                >
+                  Start earning rewards by staking in a pool
+                </p>
                 <Link
                   href="/pools"
-                  className="mt-4 inline-block rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-3 text-white font-medium transition-all hover:from-indigo-500 hover:to-purple-500 hover:shadow-lg hover:shadow-purple-500/50"
+                  style={{
+                    display: 'inline-block',
+                    marginTop: '16px',
+                    padding: '8px 24px',
+                    backgroundColor: 'var(--accent-purple, #6366f1)',
+                    color: '#ffffff',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    transition: 'opacity 0.2s',
+                  }}
+                  className="hover:opacity-90"
                 >
                   Browse Pools
                 </Link>
-              </motion.div>
+              </div>
             ) : (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.4 }}
-                className="grid gap-5 sm:grid-cols-2"
-              >
+              <div className="grid gap-4 sm:grid-cols-2">
                 {userPositions_filled.map((position, idx) => {
                   const pool = pools.find((p) => p.id === position.poolId);
                   if (!pool) return null;
                   return (
                     <motion.div
                       key={position.poolId}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.4 + idx * 0.1 }}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.2 + idx * 0.05 }}
                     >
                       <PositionCard position={position} pool={pool} />
                     </motion.div>
                   );
                 })}
-              </motion.div>
+              </div>
             )}
           </motion.div>
 
@@ -154,27 +162,45 @@ export default function Dashboard() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.4, duration: 0.6 }}
+            transition={{ delay: 0.2, duration: 0.4 }}
           >
-            <h2 className="mb-6 text-3xl font-bold text-white font-heading">Activity</h2>
+            <h2 style={{ marginBottom: '16px' }}>Activity</h2>
             <ActionHistory actions={recentActions} />
           </motion.div>
         </div>
 
         {/* Call to Action */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5, duration: 0.6 }}
-          whileHover={{ scale: 1.02 }}
-          className="mt-12"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.25, duration: 0.4 }}
+          style={{ marginTop: '32px' }}
         >
           <Link
             href="/pools"
-            className="block rounded-2xl glass border-purple-500/30 bg-gradient-to-r from-indigo-600/20 to-purple-600/20 p-8 text-center transition-all hover:border-purple-400/60 hover:neon-glow-purple"
+            style={{
+              display: 'block',
+              backgroundColor: 'var(--bg-secondary)',
+              border: '1px solid var(--border-default)',
+              borderRadius: '8px',
+              padding: '32px',
+              textAlign: 'center',
+              transition: 'border-color 0.2s, background-color 0.2s',
+            }}
+            className="hover:opacity-95 group"
           >
-            <h3 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-purple-300 font-heading">Explore More Pools</h3>
-            <p className="mt-3 text-slate-300">Discover additional staking opportunities and optimize your portfolio</p>
+            <h3 style={{ color: 'var(--text-primary)' }}>
+              Explore More Pools
+            </h3>
+            <p
+              style={{
+                marginTop: '8px',
+                color: 'var(--text-secondary)',
+                fontSize: '14px',
+              }}
+            >
+              Discover additional staking opportunities and optimize your portfolio
+            </p>
           </Link>
         </motion.div>
       </div>

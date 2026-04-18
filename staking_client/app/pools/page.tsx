@@ -33,110 +33,130 @@ export default function PoolsPage() {
   });
 
   return (
-    <main className="min-h-screen relative">
-      {/* Animated background */}
-      <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950" />
-        <motion.div 
-          animate={{ 
-            opacity: [0.3, 0.6, 0.3],
-            scale: [1, 1.2, 1]
-          }}
-          transition={{ duration: 8, repeat: Infinity }}
-          className="absolute top-0 right-1/4 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl"
-        />
-        <motion.div 
-          animate={{ 
-            opacity: [0.2, 0.4, 0.2],
-            scale: [1, 1.1, 1]
-          }}
-          transition={{ duration: 10, repeat: Infinity, delay: 1 }}
-          className="absolute bottom-0 left-1/4 w-96 h-96 bg-cyan-600/20 rounded-full blur-3xl"
-        />
-      </div>
-
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 relative z-10">
+    <main className="min-h-screen" style={{ backgroundColor: 'var(--bg-primary)' }}>
+      <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
         {/* Header */}
-        <motion.div 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="mb-12"
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4 }}
+          style={{ marginBottom: '32px' }}
         >
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-5xl font-bold text-white font-heading gradient-text">Staking Pools</h1>
-              <p className="mt-3 text-slate-400 text-lg">Choose a pool and start earning rewards</p>
-            </div>
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Link
-                href="/"
-                className="rounded-lg glass border-cyan-500/30 px-4 py-2 text-white font-medium transition-all hover:border-cyan-400/60 hover:neon-glow"
+              <h1>Staking Pools</h1>
+              <p
+                style={{
+                  marginTop: '8px',
+                  fontSize: '15px',
+                  lineHeight: 1.6,
+                  color: 'var(--text-secondary)',
+                }}
               >
-                Back to Dashboard
-              </Link>
-            </motion.div>
+                Choose a pool and start earning rewards
+              </p>
+            </div>
+            <Link
+              href="/"
+              style={{
+                fontSize: '13px',
+                fontWeight: 500,
+                color: 'var(--text-secondary)',
+                backgroundColor: 'var(--bg-tertiary)',
+                border: '1px solid var(--border-default)',
+                borderRadius: '6px',
+                padding: '6px 16px',
+                transition: 'border-color 0.2s, color 0.2s',
+                textDecoration: 'none',
+              }}
+              className="hover:!text-[var(--text-primary)] hover:border-[#55cdff]/40"
+            >
+              Back to Dashboard
+            </Link>
           </div>
         </motion.div>
 
         {/* Search and Filter */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.2, duration: 0.6 }}
-          className="mb-12 space-y-4"
+          transition={{ delay: 0.1, duration: 0.4 }}
+          style={{ marginBottom: '32px' }}
         >
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-cyan-400" />
+          <div className="relative" style={{ marginBottom: '12px' }}>
+            <Search
+              style={{
+                position: 'absolute',
+                left: '12px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: '16px',
+                height: '16px',
+                color: 'var(--text-tertiary)',
+              }}
+            />
             <input
               type="text"
               placeholder="Search pools..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-xl glass border-cyan-500/30 py-3 pl-10 pr-4 text-white placeholder-slate-500 transition-all hover:border-cyan-400/60 focus:border-cyan-400/60 focus:outline-none hover:neon-glow"
+              style={{
+                width: '100%',
+                backgroundColor: 'var(--bg-secondary)',
+                border: '1px solid var(--border-default)',
+                borderRadius: '6px',
+                padding: '10px 16px 10px 36px',
+                fontSize: '13px',
+                color: 'var(--text-primary)',
+                transition: 'border-color 0.2s',
+                outline: 'none',
+              }}
+              className="focus:border-[#55cdff]/50 placeholder:text-[var(--text-tertiary)]"
             />
           </div>
 
-          <div className="flex gap-3">
-            <Filter className="h-5 w-5 text-slate-400 mt-2" />
-            {(['apy', 'tvl', 'stakers'] as const).map((option, idx) => (
-              <motion.button
+          <div className="flex items-center gap-2">
+            <Filter style={{ width: '14px', height: '14px', color: 'var(--text-tertiary)' }} />
+            {(['apy', 'tvl', 'stakers'] as const).map((option) => (
+              <button
                 key={option}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 + idx * 0.05 }}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
                 onClick={() => setSortBy(option)}
-                className={`px-5 py-2 rounded-lg font-medium transition-all capitalize ${
-                  sortBy === option
-                    ? 'glass border-purple-500/60 bg-purple-500/20 text-purple-300 neon-glow-purple'
-                    : 'glass border-slate-500/20 text-slate-300 hover:border-slate-500/40'
-                }`}
+                style={{
+                  padding: '4px 12px',
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  fontWeight: 500,
+                  transition: 'all 0.15s ease',
+                  border: '1px solid',
+                  borderColor: sortBy === option ? '#8b5cf6' : 'var(--border-default)',
+                  backgroundColor: sortBy === option ? 'rgba(139, 92, 246, 0.1)' : 'transparent',
+                  color: sortBy === option ? '#8b5cf6' : 'var(--text-secondary)',
+                  cursor: 'pointer',
+                }}
               >
                 {option === 'apy' && 'APY'}
                 {option === 'tvl' && 'TVL'}
                 {option === 'stakers' && 'Stakers'}
-              </motion.button>
+              </button>
             ))}
           </div>
         </motion.div>
 
         {/* Pools Grid */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.3, duration: 0.6 }}
-          className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3"
+          transition={{ delay: 0.15, duration: 0.4 }}
+          className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3"
         >
           {sortedPools.map((pool, idx) => {
             const userPosition = userPositions.find((pos) => pos.poolId === pool.id);
             return (
               <motion.div
                 key={pool.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 + idx * 0.05 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.15 + idx * 0.03 }}
               >
                 <PoolCard pool={pool} userStaked={userPosition?.stakedAmount || 0} />
               </motion.div>
@@ -145,10 +165,20 @@ export default function PoolsPage() {
         </motion.div>
 
         {sortedPools.length === 0 && (
-          <div className="rounded-lg border border-slate-700 bg-gradient-to-br from-slate-900 to-slate-800 p-12 text-center">
-            <div className="mb-4 text-4xl">🔍</div>
-            <h3 className="text-lg font-semibold text-white">No Pools Found</h3>
-            <p className="mt-2 text-slate-400">Try adjusting your search query</p>
+          <div
+            style={{
+              backgroundColor: 'var(--bg-secondary)',
+              border: '1px solid var(--border-default)',
+              borderRadius: '8px',
+              padding: '48px 24px',
+              textAlign: 'center',
+            }}
+          >
+            <div style={{ fontSize: '32px', marginBottom: '12px' }}>🔍</div>
+            <h3>No Pools Found</h3>
+            <p style={{ marginTop: '8px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+              Try adjusting your search query
+            </p>
           </div>
         )}
       </div>

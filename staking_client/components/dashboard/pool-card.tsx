@@ -12,80 +12,129 @@ interface PoolCardProps {
 }
 
 export function PoolCard({ pool, userStaked = 0 }: PoolCardProps) {
-  const statusColor = {
-    active: 'bg-emerald-500/20 text-emerald-300',
-    inactive: 'bg-slate-500/20 text-slate-300',
-    maintenance: 'bg-yellow-500/20 text-yellow-300',
+  const statusStyles: Record<string, { bg: string; color: string }> = {
+    active: { bg: 'rgba(39, 166, 68, 0.12)', color: '#27a644' },
+    inactive: { bg: 'rgba(138, 143, 152, 0.12)', color: '#8a8f98' },
+    maintenance: { bg: 'rgba(255, 196, 124, 0.12)', color: '#ffc47c' },
   };
 
+  const status = statusStyles[pool.status] || statusStyles.inactive;
   const tvlInMillions = (pool.tvl / 1000000).toFixed(2);
 
   return (
     <Link href={`/pools/${pool.id}`}>
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        whileHover={{ y: -8, scale: 1.02 }}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
         transition={{ duration: 0.3 }}
         className="group cursor-pointer"
       >
-        <div className="relative rounded-2xl glass border-cyan-500/30 p-6 transition-all duration-300 overflow-hidden hover:border-cyan-400/60 hover:neon-glow">
-          {/* Animated gradient background on hover */}
-          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none bg-gradient-to-br from-cyan-500/5 to-transparent" />
-
-          <div className="relative z-10">
-            <div className="mb-4 flex items-start justify-between">
-              <div>
-                <h3 className="text-xl font-bold text-white transition-colors group-hover:text-cyan-300 font-heading">{pool.name}</h3>
-                <p className="mt-1 text-sm text-slate-400 group-hover:text-slate-300 transition-colors">{pool.description}</p>
-              </div>
-              <Badge className={statusColor[pool.status]}>
-                {pool.status.charAt(0).toUpperCase() + pool.status.slice(1)}
-              </Badge>
-            </div>
-
-            <div className="mb-4 grid grid-cols-2 gap-4">
-              <motion.div 
-                whileHover={{ scale: 1.05 }}
-                className="rounded-xl glass border-purple-500/20 p-3"
+        <div
+          style={{
+            backgroundColor: 'var(--bg-secondary)',
+            border: '1px solid var(--border-default)',
+            borderRadius: '8px',
+            padding: '20px',
+            transition: 'border-color 0.2s ease',
+          }}
+          className="hover:border-[#55cdff]/40"
+        >
+          {/* Header */}
+          <div className="flex items-start justify-between" style={{ marginBottom: '16px' }}>
+            <div>
+              <h3
+                style={{
+                  fontSize: '16px',
+                  fontWeight: 560,
+                  color: 'var(--text-primary)',
+                  transition: 'color 0.2s',
+                }}
+                className="group-hover:text-[#55cdff]"
               >
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">APY</p>
-                <p className="mt-2 flex items-center gap-1 text-2xl font-bold gradient-text-2">
-                  <TrendingUp className="h-5 w-5 text-cyan-400" />
-                  {pool.apy.toFixed(1)}%
-                </p>
-              </motion.div>
-              <motion.div 
-                whileHover={{ scale: 1.05 }}
-                className="rounded-xl glass border-blue-500/20 p-3"
-              >
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">TVL</p>
-                <p className="mt-2 text-2xl font-bold text-white">${tvlInMillions}M</p>
-              </motion.div>
+                {pool.name}
+              </h3>
+              <p style={{ marginTop: '4px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                {pool.description}
+              </p>
             </div>
-
-            <div className="flex gap-4 text-sm text-slate-400 group-hover:text-slate-300 transition-colors">
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                {pool.totalStakers.toLocaleString()} stakers
-              </div>
-              <div className="flex items-center gap-2">
-                <Lock className="h-4 w-4" />
-                Min {pool.minimumStake} SOL
-              </div>
-            </div>
-
-            {userStaked > 0 && (
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="mt-4 border-t border-slate-700 pt-4"
-              >
-                <p className="text-xs text-slate-400">Your stake</p>
-                <p className="mt-1 text-lg font-bold gradient-text">{userStaked.toFixed(2)} SOL</p>
-              </motion.div>
-            )}
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                fontSize: '11px',
+                fontWeight: 500,
+                padding: '3px 8px',
+                borderRadius: '4px',
+                backgroundColor: status.bg,
+                color: status.color,
+              }}
+            >
+              {pool.status.charAt(0).toUpperCase() + pool.status.slice(1)}
+            </span>
           </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-2 gap-3" style={{ marginBottom: '16px' }}>
+            <div
+              style={{
+                backgroundColor: 'var(--bg-tertiary)',
+                borderRadius: '6px',
+                padding: '12px',
+              }}
+            >
+              <p style={{ fontSize: '11px', fontWeight: 500, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>
+                APY
+              </p>
+              <p className="flex items-center gap-1" style={{ marginTop: '6px', fontSize: '20px', fontWeight: 590, color: '#55cdff' }}>
+                <TrendingUp style={{ width: '16px', height: '16px' }} />
+                {pool.apy.toFixed(1)}%
+              </p>
+            </div>
+            <div
+              style={{
+                backgroundColor: 'var(--bg-tertiary)',
+                borderRadius: '6px',
+                padding: '12px',
+              }}
+            >
+              <p style={{ fontSize: '11px', fontWeight: 500, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>
+                TVL
+              </p>
+              <p style={{ marginTop: '6px', fontSize: '20px', fontWeight: 590, color: 'var(--text-primary)' }}>
+                ${tvlInMillions}M
+              </p>
+            </div>
+          </div>
+
+          {/* Meta */}
+          <div className="flex gap-4" style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+            <div className="flex items-center gap-1.5">
+              <Users style={{ width: '13px', height: '13px' }} />
+              {pool.totalStakers.toLocaleString()} stakers
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Lock style={{ width: '13px', height: '13px' }} />
+              Min {pool.minimumStake} SOL
+            </div>
+          </div>
+
+          {/* User Stake */}
+          {userStaked > 0 && (
+            <div
+              style={{
+                marginTop: '16px',
+                borderTop: '1px solid var(--border-default)',
+                paddingTop: '12px',
+              }}
+            >
+              <p style={{ fontSize: '11px', fontWeight: 500, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>
+                Your stake
+              </p>
+              <p style={{ marginTop: '4px', fontSize: '15px', fontWeight: 560, color: '#8b5cf6' }}>
+                {userStaked.toFixed(2)} SOL
+              </p>
+            </div>
+          )}
         </div>
       </motion.div>
     </Link>

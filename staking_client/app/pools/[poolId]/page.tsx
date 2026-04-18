@@ -21,12 +21,31 @@ export default function PoolDetailPage() {
 
   if (!pool) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-          <div className="rounded-lg border border-slate-700 bg-gradient-to-br from-slate-900 to-slate-800 p-12 text-center">
-            <h2 className="text-2xl font-bold text-white">Pool not found</h2>
-            <p className="mt-2 text-slate-400">The pool you&apos;re looking for doesn&apos;t exist.</p>
-            <Link href="/pools" className="mt-4 inline-block text-blue-400 hover:text-blue-300">
+      <main className="min-h-screen" style={{ backgroundColor: 'var(--bg-primary)' }}>
+        <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+          <div
+            style={{
+              backgroundColor: 'var(--bg-secondary)',
+              border: '1px solid var(--border-default)',
+              borderRadius: '8px',
+              padding: '48px 24px',
+              textAlign: 'center',
+            }}
+          >
+            <h2>Pool not found</h2>
+            <p style={{ marginTop: '8px', color: 'var(--text-secondary)', fontSize: '14px' }}>
+              The pool you&apos;re looking for doesn&apos;t exist.
+            </p>
+            <Link
+              href="/pools"
+              style={{
+                display: 'inline-block',
+                marginTop: '16px',
+                color: '#55cdff',
+                fontSize: '14px',
+                fontWeight: 500,
+              }}
+            >
               Back to Pools
             </Link>
           </div>
@@ -36,31 +55,55 @@ export default function PoolDetailPage() {
   }
 
   const tvlInMillions = (pool.tvl / 1000000).toFixed(2);
-  const statusColor = {
-    active: 'bg-emerald-500/20 text-emerald-300',
-    inactive: 'bg-slate-500/20 text-slate-300',
-    maintenance: 'bg-yellow-500/20 text-yellow-300',
+  const statusStyles: Record<string, { bg: string; color: string }> = {
+    active: { bg: 'rgba(39, 166, 68, 0.12)', color: '#27a644' },
+    inactive: { bg: 'rgba(138, 143, 152, 0.12)', color: '#8a8f98' },
+    maintenance: { bg: 'rgba(255, 196, 124, 0.12)', color: '#ffc47c' },
   };
+  const status = statusStyles[pool.status] || statusStyles.inactive;
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <main className="min-h-screen" style={{ backgroundColor: 'var(--bg-primary)' }}>
+      <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-8 flex items-center justify-between">
+        <div className="flex items-center justify-between" style={{ marginBottom: '32px' }}>
           <div>
-            <Link href="/pools" className="mb-4 inline-block text-blue-400 hover:text-blue-300">
+            <Link
+              href="/pools"
+              style={{
+                display: 'inline-block',
+                marginBottom: '12px',
+                color: '#55cdff',
+                fontSize: '13px',
+                fontWeight: 500,
+                textDecoration: 'none',
+              }}
+            >
               ← Back to Pools
             </Link>
-            <h1 className="text-4xl font-bold text-white">{pool.name}</h1>
-            <p className="mt-2 text-slate-400">{pool.description}</p>
+            <h1>{pool.name}</h1>
+            <p style={{ marginTop: '8px', fontSize: '15px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+              {pool.description}
+            </p>
           </div>
-          <span className={`rounded-full px-4 py-2 text-sm font-semibold ${statusColor[pool.status]}`}>
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              fontSize: '12px',
+              fontWeight: 500,
+              padding: '4px 12px',
+              borderRadius: '4px',
+              backgroundColor: status.bg,
+              color: status.color,
+            }}
+          >
             {pool.status.charAt(0).toUpperCase() + pool.status.slice(1)}
           </span>
         </div>
 
         {/* Pool Stats */}
-        <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4" style={{ marginBottom: '32px' }}>
           <StatCard
             label="Annual Percentage Yield"
             value={`${pool.apy.toFixed(1)}%`}
@@ -91,62 +134,94 @@ export default function PoolDetailPage() {
         {/* Main Content */}
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           {/* Left Column - Actions */}
-          <div className="lg:col-span-2 space-y-8">
+          <div className="lg:col-span-2" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             {/* Staking Action Panel */}
             <StakingActionPanel poolId={poolId} pool={pool} />
 
             {/* User Position if exists */}
             {userPosition && userPosition.stakedAmount > 0 && (
               <div>
-                <h2 className="mb-4 text-2xl font-bold text-white">Your Position</h2>
+                <h2 style={{ marginBottom: '12px' }}>Your Position</h2>
                 <PositionCard position={userPosition} pool={pool} />
               </div>
             )}
 
             {/* Reward Simulation Info */}
-            <div className="rounded-lg border border-slate-700 bg-gradient-to-br from-slate-900 to-slate-800 p-6">
-              <h3 className="text-lg font-semibold text-white">How Rewards Work</h3>
-              <div className="mt-4 space-y-3 text-sm text-slate-400">
-                <p>
-                  <span className="font-medium text-white">Real-time Accrual:</span> Your rewards accrue continuously based on your staked amount and the pool&apos;s APY.
+            <div
+              style={{
+                backgroundColor: 'var(--bg-secondary)',
+                border: '1px solid var(--border-default)',
+                borderRadius: '8px',
+                padding: '20px',
+              }}
+            >
+              <h4 style={{ fontWeight: 560, fontSize: '15px', color: 'var(--text-primary)' }}>
+                How Rewards Work
+              </h4>
+              <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                  <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>Real-time Accrual:</span>{' '}
+                  Your rewards accrue continuously based on your staked amount and the pool&apos;s APY.
                 </p>
-                <p>
-                  <span className="font-medium text-white">Claim Anytime:</span> Claim your accrued rewards whenever you want. There&apos;s no lockup period for rewards.
+                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                  <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>Claim Anytime:</span>{' '}
+                  Claim your accrued rewards whenever you want. There&apos;s no lockup period for rewards.
                 </p>
-                <p>
-                  <span className="font-medium text-white">Unstaking Cooldown:</span> When you unstake, there&apos;s a 48-hour cooldown period before you can withdraw your SOL.
+                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                  <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>Unstaking Cooldown:</span>{' '}
+                  When you unstake, there&apos;s a 48-hour cooldown period before you can withdraw your SOL.
                 </p>
               </div>
             </div>
           </div>
 
           {/* Right Column - Pool Info */}
-          <div className="space-y-6">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {/* Pool Details Card */}
-            <div className="rounded-lg border border-slate-700 bg-gradient-to-br from-slate-900 to-slate-800 p-6">
-              <h3 className="mb-4 text-lg font-semibold text-white">Pool Details</h3>
-              <div className="space-y-4">
+            <div
+              style={{
+                backgroundColor: 'var(--bg-secondary)',
+                border: '1px solid var(--border-default)',
+                borderRadius: '8px',
+                padding: '20px',
+              }}
+            >
+              <h4 style={{ fontWeight: 560, fontSize: '15px', marginBottom: '16px', color: 'var(--text-primary)' }}>
+                Pool Details
+              </h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div>
-                  <p className="text-sm text-slate-400">Reward Token</p>
-                  <p className="mt-1 text-lg font-semibold text-white">{pool.rewardToken}</p>
+                  <p style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Reward Token</p>
+                  <p style={{ marginTop: '4px', fontSize: '15px', fontWeight: 560, color: 'var(--text-primary)' }}>
+                    {pool.rewardToken}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-400">Pool Status</p>
-                  <p className="mt-1 text-lg font-semibold text-white">
+                  <p style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Pool Status</p>
+                  <p style={{ marginTop: '4px', fontSize: '15px', fontWeight: 560, color: 'var(--text-primary)' }}>
                     {pool.status === 'active' ? '✅ Active' : pool.status === 'maintenance' ? '⚠️ Maintenance' : '❌ Inactive'}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-400">Total Participants</p>
-                  <p className="mt-1 text-lg font-semibold text-emerald-400">{pool.totalStakers.toLocaleString()}</p>
+                  <p style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Total Participants</p>
+                  <p style={{ marginTop: '4px', fontSize: '15px', fontWeight: 560, color: '#27a644' }}>
+                    {pool.totalStakers.toLocaleString()}
+                  </p>
                 </div>
               </div>
             </div>
 
             {/* Risk Disclosure */}
-            <div className="rounded-lg border border-blue-700/50 bg-blue-500/10 p-4">
-              <p className="text-xs font-semibold text-blue-300">⚠️ IMPORTANT</p>
-              <p className="mt-2 text-xs text-blue-200">
+            <div
+              style={{
+                backgroundColor: 'rgba(255, 196, 124, 0.06)',
+                border: '1px solid rgba(255, 196, 124, 0.2)',
+                borderRadius: '8px',
+                padding: '16px',
+              }}
+            >
+              <p style={{ fontSize: '12px', fontWeight: 560, color: '#ffc47c' }}>⚠️ IMPORTANT</p>
+              <p style={{ marginTop: '8px', fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
                 Staking involves risks. This is a simulation environment. Always do your own research before staking real assets.
               </p>
             </div>

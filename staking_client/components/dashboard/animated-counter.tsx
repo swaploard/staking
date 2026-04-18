@@ -23,7 +23,9 @@ export function AnimatedCounter({ value, decimals = 2, duration = 1000, suffix =
       const elapsed = currentTime - startTime;
       const progress = Math.min(elapsed / duration, 1);
 
-      setDisplayValue(value * progress);
+      // Ease-out curve for smoother deceleration
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplayValue(value * eased);
 
       if (progress < 1) {
         animationFrameId = requestAnimationFrame(animate);
@@ -40,15 +42,10 @@ export function AnimatedCounter({ value, decimals = 2, duration = 1000, suffix =
   }, [value, duration]);
 
   return (
-    <motion.span
-      key={Math.floor(value)}
-      initial={{ scale: 1.2, opacity: 0.5 }}
-      animate={{ scale: 1, opacity: 1 }}
-      transition={{ duration: 0.3 }}
-    >
+    <span>
       {prefix}
       {displayValue.toFixed(decimals)}
       {suffix}
-    </motion.span>
+    </span>
   );
 }

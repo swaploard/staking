@@ -1,12 +1,15 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter, Space_Grotesk } from 'next/font/google'
+import { Inter } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { Header } from '@/components/common/header'
 import SolanaWalletProvider from "@/components/providers/wallet-provider"
 import './globals.css'
 
-const inter = Inter({ subsets: ["latin"] });
-const spaceGrotesk = Space_Grotesk({ subsets: ["latin"] });
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  weight: ["400", "500", "600"],
+});
 
 export const metadata: Metadata = {
   title: 'Solana Staking Dashboard',
@@ -37,8 +40,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: 'white' },
-    { media: '(prefers-color-scheme: dark)', color: '#0f172a' },
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#08090a' },
   ],
 }
 
@@ -49,7 +52,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`${inter.className} antialiased bg-pink-500 text-white overflow-x-hidden`}>
+      <body className={`${inter.className} antialiased`}>
         <SolanaWalletProvider>
           <Header />
           {children}
