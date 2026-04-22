@@ -3,6 +3,7 @@ import { RpcClient } from "../rpc/client";
 import { Logger } from "../logger";
 import { PublicKey } from "@solana/web3.js";
 import pLimit from "p-limit";
+import { StakingProgramCodec } from "../program/stakingCodec";
 
 /**
  * Account Sync Job
@@ -16,6 +17,7 @@ export class AccountSyncJob {
     private rpcClient: RpcClient;
     private logger: Logger;
     private stakingProgramId: string;
+    private codec: StakingProgramCodec;
 
     // Anchor discriminators (first 8 bytes of account type hash)
     private readonly POOL_DISCRIMINATOR = new Uint8Array([
@@ -33,6 +35,7 @@ export class AccountSyncJob {
         this.prisma = prisma;
         this.rpcClient = rpcClient;
         this.stakingProgramId = stakingProgramId;
+        this.codec = StakingProgramCodec.load(stakingProgramId);
         this.logger = new Logger("AccountSyncJob");
     }
 
@@ -128,15 +131,23 @@ export class AccountSyncJob {
                 .filter((r): r is { success: true; data: any } => r.success && r.data !== undefined)
                 .map((r) => r.data);
 
+            const createdTxHashByPoolId = await this.getCreatedTxHashByPoolId(
+                decodedPools.map((pool) => pool.id)
+            );
+
             // Upsert pools in database
             let syncedCount = 0;
             for (const pool of decodedPools) {
                 try {
+                    const createdTxHash = createdTxHashByPoolId.get(pool.id);
+
                     await this.prisma.pool.upsert({
                         where: { id: pool.id },
                         update: {
+                            poolId: pool.poolId,
                             authority: pool.authority,
                             tokenMint: pool.tokenMint,
+                            rewardMint: pool.rewardMint,
                             vaultBump: pool.vaultBump,
                             stakedAmount: pool.stakedAmount,
                             rewardAmount: pool.rewardAmount,
@@ -145,13 +156,16 @@ export class AccountSyncJob {
                             lockUpPeriod: pool.lockUpPeriod,
                             startTime: pool.startTime,
                             endTime: pool.endTime,
+                            createdTxHash,
                             lastUpdatedSlot: BigInt(currentSlot),
                             updatedAt: new Date(),
                         },
                         create: {
                             id: pool.id,
+                            poolId: pool.poolId,
                             authority: pool.authority,
                             tokenMint: pool.tokenMint,
+                            rewardMint: pool.rewardMint,
                             vaultBump: pool.vaultBump,
                             stakedAmount: pool.stakedAmount,
                             rewardAmount: pool.rewardAmount,
@@ -160,6 +174,7 @@ export class AccountSyncJob {
                             lockUpPeriod: pool.lockUpPeriod,
                             startTime: pool.startTime,
                             endTime: pool.endTime,
+                            createdTxHash,
                             lastUpdatedSlot: BigInt(currentSlot),
                         },
                     });
@@ -288,11 +303,190 @@ export class AccountSyncJob {
     }
 
     /**
+     * Find the earliest pool-creation transaction for each pool.
+     * This only accepts explicit pool creation activity and ignores reward funding.
+     */
+    private async getCreatedTxHashByPoolId(
+        poolIds: string[]
+    ): Promise<Map<string, string>> {
+        if (poolIds.length === 0) {
+            return new Map();
+        }
+
+        const rows = await this.prisma.txActivity.findMany({
+            where: {
+                poolId: {
+                    in: poolIds,
+                },
+                OR: [
+                    {
+                        eventType: {
+                            in: ["PoolCreated", "CreatePool"],
+                        },
+                    },
+                    {
+                        metadata: {
+                            path: ["log"],
+                            string_contains: "Instruction: CreatePool",
+                        },
+                    },
+                ],
+            },
+            orderBy: [{ slot: "asc" }, { ixIndex: "asc" }],
+            select: {
+                poolId: true,
+                signature: true,
+            },
+        });
+
+        const createdTxHashByPoolId = new Map<string, string>();
+        for (const row of rows) {
+            if (row.poolId && !createdTxHashByPoolId.has(row.poolId)) {
+                createdTxHashByPoolId.set(row.poolId, row.signature);
+            }
+        }
+
+        const missingPoolIds = poolIds.filter(
+            (poolId) => !createdTxHashByPoolId.has(poolId)
+        );
+
+        if (missingPoolIds.length > 0) {
+            const limit = pLimit(3);
+            const resolved = await Promise.all(
+                missingPoolIds.map((poolId) =>
+                    limit(async () => ({
+                        poolId,
+                        signature: await this.findCreatePoolSignature(poolId),
+                    }))
+                )
+            );
+
+            for (const row of resolved) {
+                if (row.signature) {
+                    createdTxHashByPoolId.set(row.poolId, row.signature);
+                }
+            }
+        }
+
+        return createdTxHashByPoolId;
+    }
+
+    private async findCreatePoolSignature(
+        poolId: string
+    ): Promise<string | undefined> {
+        let before: string | undefined;
+        const pageSize = 100;
+        const maxPages = 20;
+
+        for (let page = 0; page < maxPages; page++) {
+            const signatures = await this.rpcClient.getSignaturesForAddress(
+                poolId,
+                {
+                    limit: pageSize,
+                    before,
+                },
+                {
+                    commitment: "confirmed",
+                }
+            );
+
+            if (signatures.length === 0) {
+                return undefined;
+            }
+
+            for (const sigInfo of signatures) {
+                if (sigInfo.err) {
+                    continue;
+                }
+
+                const tx = await this.rpcClient.getTransaction(sigInfo.signature, {
+                    commitment: "confirmed",
+                });
+
+                if (tx && this.isCreatePoolTransaction(tx, poolId)) {
+                    return sigInfo.signature;
+                }
+            }
+
+            before = signatures[signatures.length - 1]?.signature;
+        }
+
+        this.logger.warn(
+            `Could not resolve CreatePool transaction for pool ${poolId} after ${maxPages} pages`
+        );
+        return undefined;
+    }
+
+    private isCreatePoolTransaction(tx: any, poolId: string): boolean {
+        const logs = tx.meta?.logMessages || [];
+        const hasCreatePoolLog = logs.some((log: string) =>
+            log.includes("Instruction: CreatePool")
+        );
+
+        if (!hasCreatePoolLog) {
+            return false;
+        }
+
+        const accountKeys = tx.transaction.message.accountKeys || [];
+        return accountKeys.some((key: any) => {
+            if (typeof key === "string") {
+                return key === poolId;
+            }
+
+            if (key && typeof key.toBase58 === "function") {
+                return key.toBase58() === poolId;
+            }
+
+            if (key && typeof key.pubkey?.toBase58 === "function") {
+                return key.pubkey.toBase58() === poolId;
+            }
+
+            if (typeof key?.pubkey === "string") {
+                return key.pubkey === poolId;
+            }
+
+            return false;
+        });
+    }
+
+    /**
      * Decode a Pool account
      * Reference: Pool struct in Anchor IDL
      */
     private decodePoolAccount(pubkey: PublicKey, data: Buffer | Uint8Array) {
         const buffer = Buffer.isBuffer(data) ? data : Buffer.from(data);
+
+        if (this.codec.isLoaded()) {
+            try {
+                const decoded = this.codec.decodePoolAccount(
+                    pubkey.toBase58(),
+                    buffer
+                );
+
+                return {
+                    id: decoded.id,
+                    poolId: Number(decoded.poolId),
+                    authority: decoded.stakeMint,
+                    tokenMint: decoded.stakeMint,
+                    rewardMint: decoded.rewardMint,
+                    vaultBump: decoded.bump,
+                    stakedAmount: decoded.totalStaked,
+                    rewardAmount: decoded.totalRewardsFunded,
+                    rewardPerShare: 0n,
+                    totalShares: decoded.depositCap,
+                    lockUpPeriod: decoded.lockDuration,
+                    startTime: decoded.lastUpdateTimestamp,
+                    endTime: null,
+                };
+            } catch (error) {
+                const message =
+                    error instanceof Error ? error.message : String(error);
+                this.logger.warn(
+                    `Falling back to manual pool decode for ${pubkey.toBase58()}: ${message}`
+                );
+            }
+        }
+
         let offset = 8; // Skip discriminator
 
         // pool_id: u64
@@ -359,8 +553,10 @@ export class AccountSyncJob {
 
         return {
             id: pubkey.toBase58(),
+            poolId: Number(poolId),
             authority: stakeMint.toBase58(), // Simplified - actual authority may vary
             tokenMint: stakeMint.toBase58(),
+            rewardMint: rewardMint.toBase58(),
             vaultBump: 0, // Simplified
             stakedAmount: totalStaked,
             rewardAmount: BigInt(0), // Would need full buffer parsing
