@@ -193,7 +193,7 @@ export default function PoolDetailPage() {
                 <div>
                   <p style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Reward Token</p>
                   <p style={{ marginTop: '4px', fontSize: '15px', fontWeight: 560, color: 'var(--text-primary)' }}>
-                    {pool.rewardToken}
+                    {pool.rewardMint}
                   </p>
                 </div>
                 <div>

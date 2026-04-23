@@ -50,8 +50,6 @@ model IndexerCursor {
 
 model Pool {
   id              String   @id
-  name            String   @default("")
-  description    String   @default("")
   authority       String
   tokenMint       String
   vaultBump       Int
@@ -65,9 +63,15 @@ model Pool {
   lastUpdatedSlot BigInt
   createdAt       DateTime @default(now())
   updatedAt       DateTime
+  createdTxHash   String?  @db.VarChar(88)
+  description     String   @default("")
+  name            String   @default("")
+  poolId          Int?
+  rewardMint      String   @default("")
 
   @@index([authority])
   @@index([lastUpdatedSlot])
+  @@index([poolId])
 }
 
 model ProcessedSignature {
@@ -94,8 +98,10 @@ model SlotProgress {
 
 model Stakingpool {
   id              String   @id
+  poolId          Int?
   authority       String
   tokenMint       String
+  rewardMint      String   @default("")
   vaultBump       Int
   stakedAmount    BigInt   @default(0)
   rewardAmount    BigInt   @default(0)

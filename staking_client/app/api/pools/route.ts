@@ -54,8 +54,12 @@ export async function GET(request: NextRequest) {
             },
             select: {
                 id: true,
+                poolId: true,
+                name: true,
+                description: true,
                 authority: true,
                 tokenMint: true,
+                rewardMint: true,
                 vaultBump: true,
                 stakedAmount: true,
                 rewardAmount: true,
@@ -84,12 +88,14 @@ export async function GET(request: NextRequest) {
         // Convert BigInt fields to strings for JSON serialization
         const serializedPools = resultPools.map((pool: typeof resultPools[number]) => ({
             ...pool,
+            poolId: pool.poolId,
             stakedAmount: pool.stakedAmount.toString(),
             rewardAmount: pool.rewardAmount.toString(),
             rewardPerShare: pool.rewardPerShare.toString(),
             totalShares: pool.totalShares.toString(),
             lockUpPeriod: pool.lockUpPeriod.toString(),
             startTime: pool.startTime.toString(),
+            endTime: pool.endTime?.toString(),
             lastUpdatedSlot: pool.lastUpdatedSlot.toString(),
         }))
 

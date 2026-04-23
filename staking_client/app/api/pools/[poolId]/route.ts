@@ -25,10 +25,10 @@ const prisma = new PrismaClient()
  */
 export async function GET(
     request: NextRequest,
-    { params }: { params: { poolId: string } }
+    { params }: { params: Promise<{ poolId: string }> }
 ) {
     try {
-        const { poolId } = params
+        const { poolId } = await params
         const searchParams = request.nextUrl.searchParams
 
         const activityCursor = searchParams.get('activityCursor') || undefined
@@ -46,8 +46,11 @@ export async function GET(
             where: { id: poolId },
             select: {
                 id: true,
+                name: true,
+                description: true,
                 authority: true,
                 tokenMint: true,
+                rewardMint: true,
                 vaultBump: true,
                 stakedAmount: true,
                 rewardAmount: true,
@@ -70,7 +73,7 @@ export async function GET(
         }
 
         // Parse activity cursor if provided
-        let cursorId: BigInt | undefined = undefined
+        let cursorId: bigint | undefined = undefined
         if (activityCursor) {
             try {
                 cursorId = BigInt(Buffer.from(activityCursor, 'base64').toString('utf-8'))
@@ -160,6 +163,49 @@ export async function GET(
         console.error('Error fetching pool details:', error)
         return NextResponse.json(
             { error: 'Internal server error' },
+            { status: 500 }
+        )
+    }
+}
+
+/**
+ * PATCH /api/pools/[poolId]
+ * 
+ * Updates off-chain pool metadata like name and description.
+ * (In a production app, verify the request is signed by the pool authority)
+ */
+export async function PATCH(
+    request: NextRequest,
+    { params }: { params: Promise<{ poolId: string }> }
+) {
+    try {
+        const { poolId } = await params
+        const body = await request.json()
+        const { name, description } = body
+
+        // Only update provided fields
+        const dataToUpdate: any = {}
+        if (name !== undefined) dataToUpdate.name = name
+        if (description !== undefined) dataToUpdate.description = description
+
+        if (Object.keys(dataToUpdate).length === 0) {
+            return NextResponse.json(
+                { error: 'No fields to update provided' },
+                { status: 400 }
+            )
+        }
+
+        const updatedPool = await prisma.pool.update({
+            where: { id: poolId },
+            data: dataToUpdate,
+            select: { id: true, name: true, description: true }
+        })
+
+        return NextResponse.json({ pool: updatedPool })
+    } catch (error) {
+        console.error('Error updating pool metadata:', error)
+        return NextResponse.json(
+            { error: 'Failed to update pool metadata' },
             { status: 500 }
         )
     }

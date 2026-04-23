@@ -2,7 +2,6 @@
 
 import { create } from "zustand";
 import { StakingPool, UserPosition, StakingAction, ActionState } from "./types";
-import { MOCK_POOLS, MOCK_USER_POSITIONS } from "./mocks";
 
 interface StakingStore {
   pools: StakingPool[];
@@ -10,6 +9,7 @@ interface StakingStore {
   recentActions: StakingAction[];
   actionState: ActionState;
   userWalletBalance: number;
+  isLoading: boolean;
   getUserPosition: (poolId: string) => UserPosition | undefined;
   getPoolById: (poolId: string) => StakingPool | undefined;
   getTotalStats: () => {
@@ -18,6 +18,7 @@ interface StakingStore {
     totalClaimed: number;
     activePositions: number;
   };
+  fetchPools: () => Promise<void>;
   initializeStore: () => void;
   simulateRewardAccrual: () => void;
   stakeTokens: (
@@ -38,8 +39,8 @@ interface StakingStore {
 }
 
 export const useStakingStore = create<StakingStore>()((set, get) => ({
-  pools: MOCK_POOLS,
-  userPositions: MOCK_USER_POSITIONS,
+  pools: [],
+  userPositions: [],
   recentActions: [],
   actionState: {
     type: null,
@@ -49,7 +50,8 @@ export const useStakingStore = create<StakingStore>()((set, get) => ({
     error: null,
     success: false,
   },
-  userWalletBalance: 50,
+  userWalletBalance: 0,
+  isLoading: false,
 
   getUserPosition: (poolId: string) =>
     get().userPositions.find((pos) => pos.poolId === poolId),
@@ -76,7 +78,50 @@ export const useStakingStore = create<StakingStore>()((set, get) => ({
     };
   },
 
-  initializeStore: () => {},
+  fetchPools: async () => {
+    set({ isLoading: true });
+    try {
+      const response = await fetch("/api/pools?limit=100");
+      const data = await response.json();
+      if (data.pools) {
+        const pools: StakingPool[] = data.pools.map((pool: {
+          id: string;
+          poolId: number | null;
+          name: string;
+          description: string;
+          authority: string;
+          tokenMint: string;
+          rewardMint: string;
+          stakedAmount: string;
+          rewardAmount: string;
+          startTime: string;
+          endTime?: string;
+          lockUpPeriod: string;
+        }) => ({
+          id: pool.id,
+          poolId: pool.poolId,
+          name: pool.name,
+          description: pool.description,
+          stakeMint: pool.tokenMint,
+          rewardMint: pool.rewardMint,
+          apy: 0,
+          tvl: parseFloat(pool.stakedAmount) / 1e9,
+          totalStakers: 0,
+          minimumStake: 0.1,
+          rewardToken: pool.rewardMint,
+          status: "active",
+        }));
+        console.log("Fetched pools:", pools);
+        set({ pools, isLoading: false });
+      }
+    } catch (error) {
+      console.error("Failed to fetch pools:", error);
+      set({ isLoading: false });
+    }
+  },
+  initializeStore: () => {
+    get().fetchPools();
+  },
   simulateRewardAccrual: () => {},
 
   stakeTokens: async (poolId: string, amount: number, txHash?: string) => {

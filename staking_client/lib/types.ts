@@ -2,8 +2,11 @@
 
 export interface StakingPool {
   id: string;
+  poolId: number | null;
   name: string;
   description: string;
+  stakeMint: string;
+  rewardMint: string;
   apy: number; // Annual Percentage Yield (%)
   tvl: number; // Total Value Locked (SOL)
   totalStakers: number;

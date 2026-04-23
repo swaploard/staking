@@ -1,6 +1,5 @@
-import { AnchorProvider, Program } from '@coral-xyz/anchor'
-import { Connection, PublicKey } from '@solana/web3.js'
-import { AnchorWallet } from '@solana/wallet-adapter-react'
+import { AnchorProvider, Program, Wallet } from '@coral-xyz/anchor'
+import { Connection, PublicKey, Transaction } from '@solana/web3.js'
 import type { Staking } from '../../target/types/staking'
 import IDL from '../../target/idl/staking.json'
 
@@ -19,20 +18,45 @@ export const RENT_SYSVAR_ID = new PublicKey('SysvarRent1111111111111111111111111
 // Provider / Program helpers
 // ============================================================================
 
-/**
- * Build an AnchorProvider from a web3.js Connection + wallet adapter wallet.
- * Call this inside a client component that has access to useConnection() and useAnchorWallet().
- */
-export function getProvider(connection: Connection, wallet: AnchorWallet): AnchorProvider {
-  return new AnchorProvider(connection, wallet, {
-    commitment: 'confirmed',
-    preflightCommitment: 'confirmed',
-  })
+export interface AdapterWallet {
+  publicKey: PublicKey;
+  signTransaction: (tx: Transaction) => Promise<Transaction>;
+  signAllTransactions: (txs: Transaction[]) => Promise<Transaction[]>;
 }
 
-/**
- * Return a typed Anchor Program instance for the staking program.
- */
+class WalletAdapterWallet implements Wallet {
+  constructor(
+    public publicKey: PublicKey,
+    private signFn: (tx: Transaction) => Promise<Transaction>,
+    private signAllFn: (txs: Transaction[]) => Promise<Transaction[]>,
+  ) {}
+
+  async signTransaction(tx: Transaction): Promise<Transaction> {
+    return this.signFn(tx);
+  }
+
+  async signAllTransactions(txs: Transaction[]): Promise<Transaction[]> {
+    return this.signAllFn(txs);
+  }
+
+  async signMessage(msg: Uint8Array): Promise<Uint8Array> {
+    throw new Error("signMessage not implemented");
+  }
+}
+
+export function getProvider(connection: Connection, wallet: AdapterWallet): AnchorProvider {
+  const adapterWallet = new WalletAdapterWallet(
+    wallet.publicKey,
+    wallet.signTransaction.bind(wallet),
+    wallet.signAllTransactions.bind(wallet),
+  );
+
+  return new AnchorProvider(connection, adapterWallet as Wallet, {
+    commitment: 'confirmed',
+    skipPreflight: false,
+  });
+}
+
 export function getProgram(provider: AnchorProvider): Program<Staking> {
   return new Program(
     IDL as Staking,

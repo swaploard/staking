@@ -1,4 +1,4 @@
-import { PublicKey, Connection, Transaction, TransactionInstruction, Signer } from "@solana/web3.js";
+import { PublicKey, Connection, Transaction } from "@solana/web3.js";
 import BN from "bn.js";
 import { AnchorProvider, Program, Wallet } from "@coral-xyz/anchor";
 import { getAssociatedTokenAddress } from "@solana/spl-token";
@@ -14,11 +14,6 @@ export interface StakeWallet {
   publicKey: PublicKey;
   signTransaction: (tx: Transaction) => Promise<Transaction>;
   signAllTransactions: (txs: Transaction[]) => Promise<Transaction[]>;
-}
-
-export interface StakeConnection {
-  sendTransaction: (tx: Transaction, ...signers: Signer[]) => Promise<string>;
-  confirmTransaction: (tx: Transaction, ...signers: Signer[]) => Promise<{ value: { err: null } }>;
 }
 
 class WalletAdapterWallet implements Wallet {
@@ -51,12 +46,10 @@ function createStakeProvider(
     wallet.signAllTransactions.bind(wallet),
   );
 
-  const provider = new Provider(connection, adapterWallet as Wallet, {
+  return new AnchorProvider(connection, adapterWallet as Wallet, {
     commitment: "confirmed",
     skipPreflight: false,
   });
-
-  return provider;
 }
 
 function poolIdToBuffer(poolId: number): Buffer {
@@ -64,14 +57,18 @@ function poolIdToBuffer(poolId: number): Buffer {
   return bn.toArrayLike(Buffer, "le", 8);
 }
 
-export interface StakePdas {
+export interface WithdrawPdas {
   pool: PublicKey;
   userPosition: PublicKey;
   userStakeAta: PublicKey;
   stakeVault: PublicKey;
 }
 
-export function deriveStakePdas(poolId: number, user: PublicKey): StakePdas {
+export function deriveWithdrawPdas(
+  poolId: number,
+  user: PublicKey,
+  stakeMint: PublicKey,
+): WithdrawPdas {
   const [pool] = PublicKey.findProgramAddressSync(
     [Buffer.from("pool"), poolIdToBuffer(poolId)],
     PROGRAM_ID,
@@ -85,21 +82,21 @@ export function deriveStakePdas(poolId: number, user: PublicKey): StakePdas {
   return { pool, userPosition, userStakeAta: user, stakeVault: user };
 }
 
-export interface StakeArgs {
+export interface WithdrawArgs {
   poolId: number;
-  amount: number;
   stakeMint: PublicKey;
 }
 
-export async function stake(
+export async function withdraw(
   provider: AnchorProvider,
-  args: StakeArgs,
+  args: WithdrawArgs,
 ): Promise<string> {
   const program: Program<Staking> = getProgram(provider);
 
-  const { pool, userPosition } = deriveStakePdas(
+  const { pool, userPosition } = deriveWithdrawPdas(
     args.poolId,
     provider.wallet.publicKey,
+    args.stakeMint,
   );
 
   const userStakeAta = await getAssociatedTokenAddress(
@@ -111,7 +108,7 @@ export async function stake(
   const stakeVault = poolAccount.stakeVault;
 
   const tx = await program.methods
-    .stake(new BN(args.amount))
+    .withdraw()
     .accountsPartial({
       user: provider.wallet.publicKey,
       pool,
@@ -163,11 +160,11 @@ export async function stake(
   throw new Error("Wallet does not support signTransaction");
 }
 
-export async function stakeWithConnection(
+export async function withdrawWithConnection(
   connection: any,
   wallet: any,
-  args: StakeArgs,
+  args: WithdrawArgs,
 ): Promise<string> {
   const provider = createStakeProvider(connection, wallet);
-  return stake(provider, args);
+  return withdraw(provider, args);
 }

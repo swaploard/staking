@@ -3,22 +3,23 @@
 import { useState } from "react";
 import { useStakingStore } from "@/lib/store";
 import { useSolanaAdapter } from "@/lib/hooks/use-solana-adapter";
+import { refreshWalletBalance } from "@/lib/hooks/use-wallet-balance";
 import { StakingPool } from "@/lib/types";
-import { Button } from "@/components/ui/button";
 import { AlertCircle, Check, Loader2 } from "lucide-react";
 import { PublicKey } from "@solana/web3.js";
 
 interface StakeFormProps {
-  poolId: string;
   pool: StakingPool;
   availableBalance: number;
 }
 
-export function StakeForm({ poolId, pool, availableBalance }: StakeFormProps) {
+export function StakeForm({ pool, availableBalance }: StakeFormProps) {
   const { stakeTokens, actionState, resetActionState } = useStakingStore();
   const adapter = useSolanaAdapter();
   const [amount, setAmount] = useState("");
   const [error, setError] = useState("");
+
+  console.log("user availableBalance", availableBalance);
 
   const handleStake = async () => {
     const stakeAmount = parseFloat(amount);
@@ -42,18 +43,26 @@ export function StakeForm({ poolId, pool, availableBalance }: StakeFormProps) {
 
     if (adapter) {
       try {
-        const stakeMint = new PublicKey(pool.rewardToken);
+        if (pool.poolId === null) {
+          setError("This pool is missing its on-chain pool ID. Create the pool first.");
+          return;
+        }
+        const stakeMint = new PublicKey(pool.stakeMint);
         const txHash = await adapter.stakeTokens({
-          poolId: parseInt(poolId),
+          poolId: pool.poolId,
           amount: stakeAmount,
           stakeMint,
         });
-        await stakeTokens(poolId, stakeAmount, txHash);
+        await stakeTokens(pool.id, stakeAmount, txHash);
+        
+        setTimeout(() => {
+          refreshWalletBalance();
+        }, 2000);
       } catch (err: any) {
         setError(err.message || "Transaction failed");
       }
     } else {
-      await stakeTokens(poolId, stakeAmount);
+      await stakeTokens(pool.id, stakeAmount);
     }
   };
 
