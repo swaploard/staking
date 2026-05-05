@@ -9,6 +9,7 @@ import { ReconcilerJob } from "./jobs/reconciler";
 import { AlertProcessorJob } from "./jobs/alertProcessor";
 import { PartitionTunerJob } from "./jobs/partitionTuner";
 import { FinalizerJob } from "./jobs/finalizer";
+import { BackfillJob } from "./jobs/backfill";
 import pLimit from "p-limit";
 import dotenv from "dotenv";
 
@@ -37,6 +38,7 @@ class StakingIndexer {
     private alertProcessorJob!: AlertProcessorJob;
     private partitionTuner!: PartitionTunerJob;
     private finalizerJob!: FinalizerJob;
+    private backfillJob!: BackfillJob;
     private running: boolean = false;
     private accountSyncInterval: NodeJS.Timeout | null = null;
 
@@ -121,6 +123,14 @@ class StakingIndexer {
 
         this.finalizerJob = new FinalizerJob(this.prisma, this.rpcClient);
         logger.info("Finalizer job initialized");
+
+        this.backfillJob = new BackfillJob(
+            this.prisma,
+            this.rpcClient,
+            this.ingestor,
+            stakingProgramId
+        );
+        logger.info("Backfill job initialized");
 
         // Run initialization checks
         await this.runInitializationChecks();
@@ -334,6 +344,25 @@ class StakingIndexer {
     }
 
     /**
+     * Backfill historical transactions using getSignaturesForAddress
+     */
+    async runBackfill(maxPages: number = 0): Promise<{
+        totalFound: number;
+        ingested: number;
+        skipped: number;
+        failed: number;
+    }> {
+        return this.backfillJob.run(100, maxPages);
+    }
+
+    /**
+     * Reset gap-fill cursor to current slot
+     */
+    async resetCursor(): Promise<void> {
+        return this.backfillJob.resetCursor();
+    }
+
+    /**
      * Clean up resources
      */
     async shutdown(): Promise<void> {
@@ -444,6 +473,17 @@ async function main() {
                 const endSlot = BigInt(args[2] || args[1] || "0");
                 const partitionSize = BigInt(args[3] || "1000000");
                 await indexer.tunePartitions(startSlot, endSlot, partitionSize);
+            } else if (args[0] === "backfill") {
+                // Backfill using getSignaturesForAddress
+                const maxPages = parseInt(args[1], 10) || 0;
+                logger.info(`Starting backfill${maxPages > 0 ? ` (max ${maxPages} pages)` : " (all history)"}...`);
+                const result = await indexer.runBackfill(maxPages);
+                logger.info(`Backfill result: ${JSON.stringify(result)}`);
+            } else if (args[0] === "reset-cursor") {
+                // Reset gap-fill cursor to current slot
+                logger.info("Resetting gap-fill cursor to current slot...");
+                await indexer.resetCursor();
+                logger.info("✓ Cursor reset. You can now run start-gap-fill to track new transactions.");
             } else if (args[0] === "status") {
                 // Show status
                 const status = indexer.getStatus();
@@ -464,6 +504,8 @@ async function main() {
             logger.info("  finalize [n]            - Finalize up to n confirmed signatures");
             logger.info("  start-finalizer [ms]    - Start the finalizer loop");
             logger.info("  tune-partitions a b [s] - Ensure tx_activity indexes / partitions");
+            logger.info("  backfill [maxPages]     - Index historical txs via getSignaturesForAddress");
+            logger.info("  reset-cursor            - Reset gap-fill cursor to current slot");
             logger.info("  test-idempotency        - Run concurrent ingestion test to verify idempotency");
             logger.info("  status                  - Show status");
             logger.info("\nExamples:");

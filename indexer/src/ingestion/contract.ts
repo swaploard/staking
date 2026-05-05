@@ -83,7 +83,8 @@ export class IngestionContract {
             // Handle unique constraint violation (signature already exists)
             if (
                 error instanceof Error &&
-                error.message.includes("unique constraint")
+                ((error as any).code === "P2002" ||
+                 error.message.toLowerCase().includes("unique constraint"))
             ) {
                 // Fetch existing record to check if it's stale
                 const existing = await this.prisma.processedSignature.findUnique({

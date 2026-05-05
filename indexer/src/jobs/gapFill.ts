@@ -174,10 +174,11 @@ export class GapFillJob {
      */
     private async processSlot(slot: number): Promise<void> {
         try {
-            // Fetch block
+            // Fetch block with maxSupportedTransactionVersion so it doesn't crash on versioned txs
             const block = await this.rpcClient.getBlock(slot, {
                 transactionDetails: "full",
                 rewards: false,
+                maxSupportedTransactionVersion: 0,
             });
 
             if (!block) {
@@ -191,17 +192,21 @@ export class GapFillJob {
 
             // Find transactions associated with our staking program
             for (const tx of transactions) {
-                const message = tx.transaction.message;
-                const accountKeys = message.accountKeys;
+                if (!tx.transaction || !tx.transaction.message) continue;
                 
-                // For versioned tx or normal, keys usually contain string representations if parsed, 
-                // but getBlock returns base58 strings for account keys
+                const message = tx.transaction.message;
+                // Handle both legacy (accountKeys) and versioned (staticAccountKeys) transactions
+                const accountKeys = (message as any).accountKeys || (message as any).staticAccountKeys || [];
+                
                 const addresses = accountKeys.map((key: any) => 
-                    key?.pubkey ? key.pubkey : key.toString()
+                    key?.pubkey ? key.pubkey.toString() : key.toString()
                 );
 
                 if (addresses.includes(this.stakingProgramId)) {
-                    relevantSignatures.push(tx.transaction.signatures[0]);
+                    relevantSignatures.push(
+                        // @ts-ignore
+                        tx.transaction.signatures ? tx.transaction.signatures[0] : tx.transaction.signatures[0]
+                    );
                 }
             }
 
@@ -217,8 +222,8 @@ export class GapFillJob {
             // Mark slot as fully processed
             await this.markSlotProcessed(slot);
 
-        } catch (error) {
-            this.logger.error(`Error processing slot ${slot}:`, error);
+        } catch (error: any) {
+            this.logger.error(`Error processing slot ${slot}:`, error.message || String(error));
             // DO NOT mark as processed, so it will be retried next tick
         }
     }

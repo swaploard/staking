@@ -50,6 +50,11 @@ function normalizeValue(value: unknown): unknown {
         return value.toString();
     }
 
+    // Handle BN objects from bn.js (used by Anchor's BorshCoder)
+    if (value !== null && typeof value === "object" && typeof (value as any).toString === "function" && typeof (value as any).toNumber === "function") {
+        return (value as any).toString(10);
+    }
+
     if (value instanceof PublicKey) {
         return value.toBase58();
     }

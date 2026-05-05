@@ -319,9 +319,24 @@ export class TransactionIngestor {
     }
 
     /**
-     * Record transaction activity in database
-     * Processes events and instructions in deterministic order
+     * Safely convert a value to BigInt, handling BN objects, strings, numbers
      */
+    private safeBigInt(value: any): bigint | null {
+        if (value === null || value === undefined) return null;
+        try {
+            if (typeof value === "bigint") return value;
+            if (typeof value === "number") return BigInt(value);
+            if (typeof value === "string") return BigInt(value);
+            // BN objects from bn.js
+            if (typeof value === "object" && typeof value.toString === "function") {
+                return BigInt(value.toString(10));
+            }
+            return null;
+        } catch {
+            return null;
+        }
+    }
+
     private async recordTxActivity(data: any, tx: any): Promise<void> {
         const { signature, slot, blockTime, events, instructions } = data;
         const createdActivities: Array<{
@@ -347,6 +362,9 @@ export class TransactionIngestor {
                     event.data?.withdrawnAmount ??
                     event.data?.returnedAmount;
 
+                const amountBigInt = this.safeBigInt(amountValue);
+                const sharesBigInt = this.safeBigInt(event.data?.shares);
+
                 await tx.txActivity.create({
                     data: {
                         signature,
@@ -355,11 +373,11 @@ export class TransactionIngestor {
                         ixIndex,
                         eventVersion: event.version,
                         eventType: event.type,
-                        userAuthority: event.data?.user || event.data?.userAuthority,
-                        poolId: event.data?.pool || event.data?.poolId,
-                        shares: event.data?.shares ? BigInt(event.data.shares) : null,
-                        amount: amountValue ? BigInt(amountValue) : null,
-                        timestamp: data.timestamp,
+                        userAuthority: event.data?.user?.toString() || event.data?.userAuthority?.toString() || null,
+                        poolId: event.data?.pool?.toString() || event.data?.poolId?.toString() || null,
+                        shares: sharesBigInt,
+                        amount: amountBigInt,
+                        timestamp: this.safeBigInt(data.timestamp),
                         status: "confirmed",
                         metadata: event.data,
                     },
@@ -369,9 +387,9 @@ export class TransactionIngestor {
                     signature,
                     slot,
                     eventType: event.type,
-                    amount: amountValue ? BigInt(amountValue) : null,
-                    userAuthority: event.data?.user || event.data?.userAuthority,
-                    poolId: event.data?.pool || event.data?.poolId,
+                    amount: amountBigInt,
+                    userAuthority: event.data?.user?.toString() || event.data?.userAuthority?.toString() || null,
+                    poolId: event.data?.pool?.toString() || event.data?.poolId?.toString() || null,
                     metadata: event.data,
                 });
             }
@@ -407,7 +425,14 @@ export class TransactionIngestor {
             }
         }
 
-        await this.alertEngine.enqueueActivityAlerts(tx, createdActivities);
+        try {
+            await this.alertEngine.enqueueActivityAlerts(tx, createdActivities);
+        } catch (alertError) {
+            this.logger.warn(
+                `[${signature}] Alert enqueue failed (activity still saved):`,
+                alertError
+            );
+        }
 
         this.logger.debug(
             `[${signature}] Recorded ${events.length + (instructions.length || 0)} activities`

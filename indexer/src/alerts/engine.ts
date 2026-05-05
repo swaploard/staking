@@ -73,18 +73,16 @@ export class AlertEngine {
             },
         });
 
-        await writer.$executeRawUnsafe(
-            `
-                INSERT INTO "AlertQueue"
-                    ("alertId", "alertType", "payload", "historical", "status", "retryCount", "availableAt", "createdAt", "updatedAt")
-                VALUES
-                    ($1, $2, $3::jsonb, $4, 'pending', 0, NOW(), NOW(), NOW())
-            `,
-            alert.id.toString(),
-            input.alertType,
-            JSON.stringify(input.metadata ?? {}),
-            input.historical ?? false
-        );
+        await writer.alertQueue.create({
+            data: {
+                alertId: alert.id,
+                alertType: input.alertType,
+                payload: input.metadata ?? {},
+                historical: input.historical ?? false,
+                status: "pending",
+                retryCount: 0,
+            },
+        });
     }
 
     private toAlertInput(
