@@ -91,6 +91,21 @@ Process multiple transaction signatures at once:
 npm run dev -- batch <sig1> <sig2> <sig3>
 ```
 
+### Historical Data Backfill
+To index historical transactions from before the indexer was started, use the backfill command. This uses `getSignaturesForAddress` to quickly paginate through history:
+```bash
+# Backfill all history
+npm run dev -- backfill
+
+# Backfill only the most recent N pages (100 signatures per page)
+npm run dev -- backfill 1
+```
+
+If your indexer is tracking millions of slots behind the live network, you can reset the gap-fill cursor to the current live slot. This is useful after completing a historical backfill to start tracking live data immediately:
+```bash
+npm run dev -- reset-cursor
+```
+
 ### Scheduled Daemon Behaviors
 Start syncing accounts periodically on a recurring loop (default: every 60s):
 ```bash
