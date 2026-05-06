@@ -8,11 +8,20 @@ import { ActionHistory } from '@/components/dashboard/action-history';
 import { AnimatedCounter } from '@/components/dashboard/animated-counter';
 import { Footer } from '@/components/common/footer';
 import { Wallet, TrendingUp, Award, BarChart3 } from 'lucide-react';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { useWalletActivity } from '@/hooks/useWalletActivity';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 
 export default function Dashboard() {
-  const { pools, userPositions, recentActions, getTotalStats, userWalletBalance, initializeStore } = useStakingStore();
+  const { pools, userPositions, getTotalStats, userWalletBalance, initializeStore } = useStakingStore();
+  const { connected, publicKey } = useWallet();
+  const walletPubkey = connected ? publicKey?.toBase58() : undefined;
+  const {
+    actions: databaseActions,
+    loading: activityLoading,
+    error: activityError,
+  } = useWalletActivity(walletPubkey, { limit: 5 });
 
   useEffect(() => {
     initializeStore();
@@ -165,7 +174,12 @@ export default function Dashboard() {
             transition={{ delay: 0.2, duration: 0.4 }}
           >
             <h2 style={{ marginBottom: '16px' }}>Activity</h2>
-            <ActionHistory actions={recentActions} />
+            <ActionHistory
+              actions={databaseActions}
+              isLoading={activityLoading}
+              error={activityError}
+              walletConnected={connected}
+            />
           </motion.div>
         </div>
 

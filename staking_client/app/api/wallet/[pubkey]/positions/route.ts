@@ -25,10 +25,10 @@ const prisma = new PrismaClient()
  */
 export async function GET(
     request: NextRequest,
-    { params }: { params: { pubkey: string } }
+    { params }: { params: Promise<{ pubkey: string }> }
 ) {
     try {
-        const { pubkey } = params
+        const { pubkey } = await params
         const searchParams = request.nextUrl.searchParams
 
         const cursor = searchParams.get('cursor') || undefined

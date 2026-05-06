@@ -2,10 +2,11 @@
 
 import { LucideIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
+import type { ReactNode } from 'react';
 
 interface StatCardProps {
   label: string;
-  value: string | number;
+  value: ReactNode;
   icon: LucideIcon;
   subtext?: string;
   variant?: 'default' | 'primary' | 'success';
