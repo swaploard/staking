@@ -44,6 +44,7 @@ model Pool {
   authority       String
   tokenMint       String
   rewardMint      String   @default("")
+  aprBps          BigInt   @default(0)
   vaultBump       Int
   stakedAmount    BigInt   @default(0)
   rewardAmount    BigInt   @default(0)
@@ -105,32 +106,31 @@ model UserPosition {
 }
 
 model TxActivity {
-  id            BigInt    @id @default(autoincrement())
-  signature     String    @db.VarChar(88)
-  slot          BigInt
-  blockTime     DateTime?
-  ixIndex       Int
-  eventVersion  Int       @default(1)
-  eventType     String
-  userAuthority String?
-  poolId        String?
-  shares        BigInt?
-  amount        BigInt?
-  timestamp     BigInt?
-  status        String    @default("confirmed")
-  historical    Boolean   @default(false)
-  metadata      Json?
-  createdAt     DateTime  @default(now())
+   id            BigInt    @id @default(autoincrement())
+   signature     String    @db.VarChar(88)
+   slot          BigInt
+   blockTime     DateTime?
+   ixIndex       Int
+   eventVersion  Int       @default(1)
+   eventType     String
+   userAuthority String?
+   poolId        String?
+   shares        BigInt?
+   amount        BigInt?
+   timestamp     BigInt?
+   status        String    @default("confirmed")
+   historical    Boolean   @default(false)
+   metadata      Json?
+   createdAt     DateTime  @default(now())
 
-  @@unique([signature, ixIndex])
-  @@index([slot])
-  @@index([blockTime])
-  @@index([status])
-  @@index([userAuthority])
-  @@index([poolId])
-  @@index([eventType])
-  @@index([eventVersion])
-  @@index([historical])
+   @@unique([signature, ixIndex])
+   @@index([slot])
+   @@index([blockTime])
+   @@index([status])
+   @@index([userAuthority])
+   @@index([eventType])
+   @@index([eventVersion])
+   @@index([historical])
 }
 
 model VaultHistory {

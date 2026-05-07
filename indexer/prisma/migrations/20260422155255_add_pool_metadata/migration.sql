@@ -1,11 +1,11 @@
 -- DropIndex
-DROP INDEX "TxActivity_poolId_slot_idx";
+DROP INDEX IF EXISTS "TxActivity_poolId_slot_idx";
 
 -- DropIndex
-DROP INDEX "TxActivity_slot_signature_ixIndex_idx";
+DROP INDEX IF EXISTS "TxActivity_slot_signature_ixIndex_idx";
 
 -- DropIndex
-DROP INDEX "TxActivity_userAuthority_slot_idx";
+DROP INDEX IF EXISTS "TxActivity_userAuthority_slot_idx";
 
 -- AlterTable
 ALTER TABLE "Pool" ADD COLUMN     "createdTxHash" VARCHAR(88),

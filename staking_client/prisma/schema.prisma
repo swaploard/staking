@@ -53,6 +53,7 @@ model Pool {
   authority       String
   tokenMint       String
   vaultBump       Int
+  aprBps          BigInt   @default(0)
   stakedAmount    BigInt   @default(0)
   rewardAmount    BigInt   @default(0)
   rewardPerShare  BigInt   @default(0)

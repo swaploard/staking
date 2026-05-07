@@ -3,6 +3,32 @@ import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
+function extractAprBpsFromMetadata(metadata: unknown): bigint | null {
+    if (!metadata || typeof metadata !== 'object') return null
+    const record = metadata as Record<string, unknown>
+    const candidates = [
+        record.aprBps,
+        record.apr_bps,
+        record.apr,
+        record.params && typeof record.params === 'object'
+            ? (record.params as Record<string, unknown>).aprBps
+            : undefined,
+        record.params && typeof record.params === 'object'
+            ? (record.params as Record<string, unknown>).apr_bps
+            : undefined,
+    ]
+
+    for (const value of candidates) {
+        if (value === null || value === undefined) continue
+        try {
+            return BigInt(String(value))
+        } catch {
+            // continue trying other keys
+        }
+    }
+    return null
+}
+
 /**
  * GET /api/pools/[poolId]
  *
@@ -42,28 +68,65 @@ export async function GET(
         if (activityLimit > 50) activityLimit = 50
 
         // Fetch pool details
-        const pool = await prisma.pool.findUnique({
-            where: { id: poolId },
-            select: {
-                id: true,
-                name: true,
-                description: true,
-                authority: true,
-                tokenMint: true,
-                rewardMint: true,
-                vaultBump: true,
-                stakedAmount: true,
-                rewardAmount: true,
-                rewardPerShare: true,
-                totalShares: true,
-                lockUpPeriod: true,
-                startTime: true,
-                endTime: true,
-                lastUpdatedSlot: true,
-                createdAt: true,
-                updatedAt: true,
-            },
-        })
+        let pool: any
+        try {
+            pool = await prisma.pool.findUnique({
+                where: { id: poolId },
+                select: {
+                    id: true,
+                    name: true,
+                    description: true,
+                    authority: true,
+                    tokenMint: true,
+                    rewardMint: true,
+                    aprBps: true,
+                    createdTxHash: true,
+                    vaultBump: true,
+                    stakedAmount: true,
+                    rewardAmount: true,
+                    rewardPerShare: true,
+                    totalShares: true,
+                    lockUpPeriod: true,
+                    startTime: true,
+                    endTime: true,
+                    lastUpdatedSlot: true,
+                    createdAt: true,
+                    updatedAt: true,
+                },
+            } as any)
+        } catch (error) {
+            const message = error instanceof Error ? error.message : ''
+            const missingAprField =
+                message.includes('Unknown field `aprBps`') ||
+                message.includes('Unknown argument `aprBps`')
+            if (!missingAprField) {
+                throw error
+            }
+
+            pool = await prisma.pool.findUnique({
+                where: { id: poolId },
+                select: {
+                    id: true,
+                    name: true,
+                    description: true,
+                    authority: true,
+                    tokenMint: true,
+                    rewardMint: true,
+                    createdTxHash: true,
+                    vaultBump: true,
+                    stakedAmount: true,
+                    rewardAmount: true,
+                    rewardPerShare: true,
+                    totalShares: true,
+                    lockUpPeriod: true,
+                    startTime: true,
+                    endTime: true,
+                    lastUpdatedSlot: true,
+                    createdAt: true,
+                    updatedAt: true,
+                },
+            })
+        }
 
         if (!pool) {
             return NextResponse.json(
@@ -71,6 +134,43 @@ export async function GET(
                 { status: 404 }
             )
         }
+
+        let fallbackAprBps = 0n
+        const poolAprBps = pool.aprBps ? BigInt(String(pool.aprBps)) : 0n
+        if (poolAprBps === 0n) {
+            const createActivity = await prisma.txActivity.findFirst({
+                where: {
+                    poolId,
+                    eventType: { in: ['PoolCreated', 'CreatePool'] },
+                },
+                orderBy: [{ slot: 'asc' }, { ixIndex: 'asc' }],
+                select: {
+                    metadata: true,
+                },
+            })
+
+            const aprFromPoolActivity = extractAprBpsFromMetadata(createActivity?.metadata)
+            if (aprFromPoolActivity !== null) {
+                fallbackAprBps = aprFromPoolActivity
+            } else if (pool.createdTxHash) {
+                const createTxActivity = await prisma.txActivity.findFirst({
+                    where: {
+                        signature: pool.createdTxHash,
+                        eventType: { in: ['PoolCreated', 'CreatePool'] },
+                    },
+                    orderBy: [{ slot: 'asc' }, { ixIndex: 'asc' }],
+                    select: {
+                        metadata: true,
+                    },
+                })
+                const aprFromSignature = extractAprBpsFromMetadata(createTxActivity?.metadata)
+                if (aprFromSignature !== null) {
+                    fallbackAprBps = aprFromSignature
+                }
+            }
+        }
+
+        const effectiveAprBps = poolAprBps > 0n ? poolAprBps : fallbackAprBps
 
         // Parse activity cursor if provided
         let cursorId: bigint | undefined = undefined
@@ -127,6 +227,8 @@ export async function GET(
         // Serialize BigInt fields
         const serializedPool = {
             ...pool,
+            aprBps: effectiveAprBps.toString(),
+            apy: Number(effectiveAprBps) / 100,
             stakedAmount: pool.stakedAmount.toString(),
             rewardAmount: pool.rewardAmount.toString(),
             rewardPerShare: pool.rewardPerShare.toString(),

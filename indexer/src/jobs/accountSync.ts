@@ -148,6 +148,7 @@ export class AccountSyncJob {
                             authority: pool.authority,
                             tokenMint: pool.tokenMint,
                             rewardMint: pool.rewardMint,
+                            aprBps: pool.aprBps,
                             vaultBump: pool.vaultBump,
                             stakedAmount: pool.stakedAmount,
                             rewardAmount: pool.rewardAmount,
@@ -166,6 +167,7 @@ export class AccountSyncJob {
                             authority: pool.authority,
                             tokenMint: pool.tokenMint,
                             rewardMint: pool.rewardMint,
+                            aprBps: pool.aprBps,
                             vaultBump: pool.vaultBump,
                             stakedAmount: pool.stakedAmount,
                             rewardAmount: pool.rewardAmount,
@@ -469,6 +471,7 @@ export class AccountSyncJob {
                     authority: decoded.stakeMint,
                     tokenMint: decoded.stakeMint,
                     rewardMint: decoded.rewardMint,
+                    aprBps: decoded.aprBps,
                     vaultBump: decoded.bump,
                     stakedAmount: decoded.totalStaked,
                     rewardAmount: decoded.totalRewardsFunded,
@@ -557,6 +560,7 @@ export class AccountSyncJob {
             authority: stakeMint.toBase58(), // Simplified - actual authority may vary
             tokenMint: stakeMint.toBase58(),
             rewardMint: rewardMint.toBase58(),
+            aprBps: aprBps,
             vaultBump: 0, // Simplified
             stakedAmount: totalStaked,
             rewardAmount: BigInt(0), // Would need full buffer parsing

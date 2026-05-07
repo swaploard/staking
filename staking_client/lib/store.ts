@@ -92,25 +92,34 @@ export const useStakingStore = create<StakingStore>()((set, get) => ({
           authority: string;
           tokenMint: string;
           rewardMint: string;
+          aprBps?: string;
+          apy?: number;
           stakedAmount: string;
           rewardAmount: string;
           startTime: string;
           endTime?: string;
           lockUpPeriod: string;
-        }) => ({
+        }) => {
+          const apy =
+            typeof pool.apy === "number"
+              ? pool.apy
+              : Number(pool.aprBps ?? "0") / 100;
+
+          return ({
           id: pool.id,
           poolId: pool.poolId,
           name: pool.name,
           description: pool.description,
           stakeMint: pool.tokenMint,
           rewardMint: pool.rewardMint,
-          apy: 0,
+          apy,
           tvl: parseFloat(pool.stakedAmount) / 1e9,
           totalStakers: 0,
           minimumStake: 0.1,
           rewardToken: pool.rewardMint,
           status: "active",
-        }));
+          });
+        });
         console.log("Fetched pools:", pools);
         set({ pools, isLoading: false });
       }
