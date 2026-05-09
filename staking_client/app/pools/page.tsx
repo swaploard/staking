@@ -7,9 +7,10 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Search, Filter } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function PoolsPage() {
-  const { pools, userPositions } = useStakingStore();
+  const { pools, userPositions, isLoading } = useStakingStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'apy' | 'tvl' | 'stakers'>('apy');
 
@@ -143,28 +144,47 @@ export default function PoolsPage() {
         </motion.div>
 
         {/* Pools Grid */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.15, duration: 0.4 }}
-          className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3"
-        >
-          {sortedPools.map((pool, idx) => {
-            const userPosition = userPositions.find((pos) => pos.poolId === pool.id);
-            return (
-              <motion.div
-                key={pool.id}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.15 + idx * 0.03 }}
-              >
-                <PoolCard pool={pool} userStaked={userPosition?.stakedAmount || 0} />
-              </motion.div>
-            );
-          })}
-        </motion.div>
+        {isLoading ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.15, duration: 0.4 }}
+            className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3"
+          >
+            {Array.from({ length: 6 }).map((_, idx) => (
+              <Skeleton
+                key={`skeleton-${idx}`}
+                style={{
+                  height: '280px',
+                  borderRadius: '8px',
+                }}
+              />
+            ))}
+          </motion.div>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.15, duration: 0.4 }}
+            className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3"
+          >
+            {sortedPools.map((pool, idx) => {
+              const userPosition = userPositions.find((pos) => pos.poolId === pool.id);
+              return (
+                <motion.div
+                  key={pool.id}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.15 + idx * 0.03 }}
+                >
+                  <PoolCard pool={pool} userStaked={userPosition?.stakedAmount || 0} />
+                </motion.div>
+              );
+            })}
+          </motion.div>
+        )}
 
-        {sortedPools.length === 0 && (
+        {!isLoading && sortedPools.length === 0 && (
           <div
             style={{
               backgroundColor: 'var(--bg-secondary)',
