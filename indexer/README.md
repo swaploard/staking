@@ -158,3 +158,64 @@ Execute the production transpiled output:
 ```bash
 npm run start -- start-sync 60000
 ```
+
+## Docker Usage
+The indexer can be run using Docker and Docker Compose for easy deployment and dependency management.
+
+### Prerequisites
+- Docker Engine
+- Docker Compose
+
+### Environment Setup
+Copy the example environment file and adjust as needed:
+```bash
+cp .env.example .env
+# Edit .env to configure your settings
+```
+
+### Docker Compose Commands
+Build and start all services (indexer and PostgreSQL database):
+```bash
+docker compose up --build -d
+```
+
+View logs from the indexer service:
+```bash
+docker compose logs -f indexer
+```
+
+Run indexer CLI commands:
+```bash
+# Check indexer status
+docker compose exec indexer node dist/index.js status
+
+# Sync accounts once
+docker compose exec indexer node dist/index.js sync-accounts
+
+# Start scheduled account sync (every 60 seconds)
+docker compose exec indexer node dist/index.js start-sync 60000
+
+# Start gap fill job (every 30 seconds)
+docker compose exec indexer node dist/index.js start-gap-fill 30000
+
+# Process a single transaction
+docker compose exec indexer node dist/index.js process <signature>
+
+# Backfill historical transactions
+docker compose exec indexer node dist/index.js backfill
+```
+
+Stop and remove containers:
+```bash
+docker compose down
+```
+
+Stop containers but preserve data:
+```bash
+docker compose stop
+```
+
+Restart stopped containers:
+```bash
+docker compose start
+```

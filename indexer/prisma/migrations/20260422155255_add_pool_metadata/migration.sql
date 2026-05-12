@@ -7,14 +7,6 @@ DROP INDEX IF EXISTS "TxActivity_slot_signature_ixIndex_idx";
 -- DropIndex
 DROP INDEX IF EXISTS "TxActivity_userAuthority_slot_idx";
 
--- AlterTable
-ALTER TABLE "Pool" ADD COLUMN     "createdTxHash" VARCHAR(88),
-ADD COLUMN     "description" TEXT NOT NULL DEFAULT '',
-ADD COLUMN     "name" TEXT NOT NULL DEFAULT '',
-ADD COLUMN     "poolId" INTEGER,
-ADD COLUMN     "rewardMint" TEXT NOT NULL DEFAULT '';
-
--- Backfill pool creation tx hashes from pool-creation activity only.
 -- This intentionally excludes reward funding transactions so pools are
 -- linked to their original CreatePool / PoolCreated transaction.
 UPDATE "Pool" AS p
@@ -35,10 +27,10 @@ WHERE p."id" = src."poolId"
   AND p."createdTxHash" IS NULL;
 
 -- DropEnum
-DROP TYPE "ProcessedSignatureStatus";
+DROP TYPE IF EXISTS "ProcessedSignatureStatus";
 
 -- CreateTable
-CREATE TABLE "Stakingpool" (
+CREATE TABLE IF NOT EXISTS "Stakingpool" (
     "id" TEXT NOT NULL,
     "poolId" INTEGER,
     "authority" TEXT NOT NULL,
@@ -60,10 +52,10 @@ CREATE TABLE "Stakingpool" (
 );
 
 -- CreateIndex
-CREATE INDEX "Stakingpool_authority_idx" ON "Stakingpool"("authority");
+CREATE INDEX IF NOT EXISTS "Stakingpool_authority_idx" ON "Stakingpool"("authority");
 
 -- CreateIndex
-CREATE INDEX "Stakingpool_lastUpdatedSlot_idx" ON "Stakingpool"("lastUpdatedSlot");
+CREATE INDEX IF NOT EXISTS "Stakingpool_lastUpdatedSlot_idx" ON "Stakingpool"("lastUpdatedSlot");
 
 -- CreateIndex
-CREATE INDEX "Pool_poolId_idx" ON "Pool"("poolId");
+CREATE INDEX IF NOT EXISTS "Pool_poolId_idx" ON "Pool"("poolId");

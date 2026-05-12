@@ -1,0 +1,45 @@
+services:
+  indexer:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - RPC_ENDPOINT=${RPC_ENDPOINT}
+      - RPC_ENDPOINT_FALLBACK=${RPC_ENDPOINT_FALLBACK}
+      - STAKING_PROGRAM_ID=${STAKING_PROGRAM_ID}
+      - WEBSOCKET_ENDPOINT=${WEBSOCKET_ENDPOINT}
+      - NETWORK=${NETWORK}
+      - CONFIRMED_STATUS_ONLY=${CONFIRMED_STATUS_ONLY}
+      - MAX_CONCURRENT_TX_WORKERS=${MAX_CONCURRENT_TX_WORKERS}
+      - PROCESSING_TIMEOUT_MS=${PROCESSING_TIMEOUT_MS}
+      - STALE_PROCESSING_THRESHOLD_MS=${STALE_PROCESSING_THRESHOLD_MS}
+      - LOG_LEVEL=${LOG_LEVEL}
+    volumes:
+      - .:/app:cached
+      - /app/node_modules
+      - /app/.next/cache
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "npm run db:migrate && npm start -- start-sync 60000"
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=neondb_owner
+      - POSTGRES_PASSWORD=npg_LXdJFEuNfZ65
+      - POSTGRES_DB=neondb
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U neondb_owner -d neondb"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  postgres_data:
