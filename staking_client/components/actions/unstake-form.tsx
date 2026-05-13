@@ -5,6 +5,7 @@ import { useStakingStore } from "@/lib/store";
 import { useSolanaAdapter } from "@/lib/hooks/use-solana-adapter";
 import { StakingPool, UserPosition } from "@/lib/types";
 import { AlertCircle, Check, Loader2, Clock } from "lucide-react";
+import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 
 interface UnstakeFormProps {
   pool: StakingPool;
@@ -40,9 +41,16 @@ export function UnstakeForm({ pool, position }: UnstakeFormProps) {
           setError("This pool is missing its on-chain pool ID");
           return;
         }
+        const unstakeAmountLamports = Math.round(unstakeAmount * LAMPORTS_PER_SOL);
+
+        if (unstakeAmountLamports <= 0) {
+          setError("Please enter at least 1 lamport");
+          return;
+        }
+
         const txHash = await adapter.unstakeTokens({
           poolId: pool.poolId,
-          amount: unstakeAmount,
+          amount: unstakeAmountLamports,
         });
         await unstakeTokens(pool.id, unstakeAmount, txHash);
       } catch (err: any) {

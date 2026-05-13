@@ -1,7 +1,7 @@
 'use client';
 
 import { useStakingStore } from '@/lib/store';
-import { useWalletBalance } from '@/lib/hooks/use-wallet-balance';
+import { useStakeMintBalance } from '@/lib/hooks/use-wallet-balance';
 import { StakingPool } from '@/lib/types';
 import { StakeForm } from './stake-form';
 import { UnstakeForm } from './unstake-form';
@@ -17,7 +17,7 @@ interface StakingActionPanelProps {
 
 export function StakingActionPanel({ poolId, pool }: StakingActionPanelProps) {
   const { getUserPosition } = useStakingStore();
-  const userWalletBalance = useWalletBalance();
+  const stakeMintBalance = useStakeMintBalance(pool.stakeMint);
   const position = getUserPosition(poolId);
 
   return (
@@ -54,7 +54,13 @@ export function StakingActionPanel({ poolId, pool }: StakingActionPanelProps) {
         </TabsList>
 
         <TabsContent value="stake" className="mt-6">
-          <StakeForm pool={pool} availableBalance={userWalletBalance} />
+          <StakeForm
+            pool={pool}
+            availableBalance={stakeMintBalance.balance}
+            stakeDecimals={stakeMintBalance.decimals}
+            balanceLabel={stakeMintBalance.symbol}
+            isBalanceLoading={stakeMintBalance.isLoading}
+          />
         </TabsContent>
 
         <TabsContent value="unstake" className="mt-6">

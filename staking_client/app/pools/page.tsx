@@ -3,16 +3,20 @@
 import { useStakingStore } from '@/lib/store';
 import { PoolCard } from '@/components/dashboard/pool-card';
 import { Footer } from '@/components/common/footer';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Search, Filter } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function PoolsPage() {
-  const { pools, userPositions, isLoading } = useStakingStore();
+  const { pools, userPositions, isLoading, initializeStore } = useStakingStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'apy' | 'tvl' | 'stakers'>('apy');
+
+  useEffect(() => {
+    initializeStore();
+  }, [initializeStore]);
 
   const filteredPools = pools.filter(
     (pool) =>
@@ -177,7 +181,7 @@ export default function PoolsPage() {
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.15 + idx * 0.03 }}
                 >
-                  <PoolCard pool={pool} userStaked={userPosition?.stakedAmount || 0} />
+                  {pool.poolId == 114 && <PoolCard pool={pool} userStaked={userPosition?.stakedAmount || 0} />}
                 </motion.div>
               );
             })}

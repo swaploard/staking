@@ -11,15 +11,45 @@ import { PublicKey } from "@solana/web3.js";
 interface StakeFormProps {
   pool: StakingPool;
   availableBalance: number;
+  stakeDecimals: number;
+  balanceLabel: string;
+  isBalanceLoading?: boolean;
 }
 
-export function StakeForm({ pool, availableBalance }: StakeFormProps) {
+function parseTokenAmount(value: string, decimals: number): number {
+  const trimmed = value.trim();
+  if (!/^\d+(\.\d+)?$/.test(trimmed)) {
+    throw new Error("Please enter a valid amount");
+  }
+
+  const [wholePart, fractionPart = ""] = trimmed.split(".");
+  if (fractionPart.length > decimals) {
+    throw new Error(`This token supports up to ${decimals} decimal places`);
+  }
+
+  const decimalMultiplier = BigInt(10) ** BigInt(decimals);
+  const rawAmount = BigInt(wholePart || "0") * decimalMultiplier;
+  const fractionalAmount = BigInt(fractionPart.padEnd(decimals, "0") || "0");
+  const baseUnits = rawAmount + fractionalAmount;
+
+  if (baseUnits > BigInt(Number.MAX_SAFE_INTEGER)) {
+    throw new Error("Stake amount is too large for this client transaction");
+  }
+
+  return Number(baseUnits);
+}
+
+export function StakeForm({
+  pool,
+  availableBalance,
+  stakeDecimals,
+  balanceLabel,
+  isBalanceLoading = false,
+}: StakeFormProps) {
   const { stakeTokens, actionState, resetActionState } = useStakingStore();
   const adapter = useSolanaAdapter();
   const [amount, setAmount] = useState("");
   const [error, setError] = useState("");
-
-  console.log("user availableBalance", availableBalance);
 
   const handleStake = async () => {
     const stakeAmount = parseFloat(amount);
@@ -29,13 +59,15 @@ export function StakeForm({ pool, availableBalance }: StakeFormProps) {
       return;
     }
 
-    if (stakeAmount < pool.minimumStake) {
-      setError(`Minimum stake is ${pool.minimumStake} SOL`);
-      return;
-    }
+    // if (stakeAmount < pool.minimumStake) {
+    //   setError(`Minimum stake is ${pool.minimumStake} SOL`);
+    //   return;
+    // }
 
     if (stakeAmount > availableBalance) {
-      setError("Insufficient balance");
+      setError(
+        `Insufficient ${balanceLabel} balance. This pool stakes ${balanceLabel}, not your general wallet SOL balance.`
+      );
       return;
     }
 
@@ -44,17 +76,30 @@ export function StakeForm({ pool, availableBalance }: StakeFormProps) {
     if (adapter) {
       try {
         if (pool.poolId === null) {
-          setError("This pool is missing its on-chain pool ID. Create the pool first.");
+          setError(
+            "This pool is missing its on-chain pool ID. Create the pool first."
+          );
           return;
         }
         const stakeMint = new PublicKey(pool.stakeMint);
+        const stakeAmountBaseUnits = parseTokenAmount(amount, stakeDecimals);
+
+        if (stakeAmountBaseUnits <= 0) {
+          setError("Please enter at least 1 base unit");
+          return;
+        }
+        console.log("Staking with adapter:", {
+          poolId: pool.poolId,
+          amount: stakeAmountBaseUnits,
+          stakeMint: stakeMint.toString(),
+        });
         const txHash = await adapter.stakeTokens({
           poolId: pool.poolId,
-          amount: stakeAmount,
+          amount: stakeAmountBaseUnits,
           stakeMint,
         });
         await stakeTokens(pool.id, stakeAmount, txHash);
-        
+
         setTimeout(() => {
           refreshWalletBalance();
         }, 2000);
@@ -67,7 +112,11 @@ export function StakeForm({ pool, availableBalance }: StakeFormProps) {
   };
 
   const setMaxAmount = () => {
-    setAmount(Math.max(availableBalance - 0.1, 0).toFixed(2));
+    const maxAmount =
+      balanceLabel === "SOL"
+        ? Math.max(availableBalance - 0.1, 0)
+        : availableBalance;
+    setAmount(maxAmount.toFixed(Math.min(stakeDecimals, 6)));
     setError("");
   };
 
@@ -87,7 +136,7 @@ export function StakeForm({ pool, availableBalance }: StakeFormProps) {
               Staking successful!
             </p>
             <p className="text-sm text-emerald-200">
-              {amount} SOL staked in {pool.name}
+              {amount} {balanceLabel} staked in {pool.name}
             </p>
           </div>
         </div>
@@ -109,7 +158,7 @@ export function StakeForm({ pool, availableBalance }: StakeFormProps) {
 
       <div>
         <label className="block text-sm font-medium text-slate-300 mb-2">
-          Amount to Stake (SOL)
+          Amount to Stake ({balanceLabel})
         </label>
         <div className="relative">
           <input
@@ -119,7 +168,7 @@ export function StakeForm({ pool, availableBalance }: StakeFormProps) {
               setAmount(e.target.value);
               setError("");
             }}
-            placeholder={`Min ${pool.minimumStake} SOL`}
+            placeholder={`Min ${pool.minimumStake} ${balanceLabel}`}
             disabled={actionState.type === "stake" && actionState.isLoading}
             className="w-full rounded-lg border border-slate-700 bg-slate-800/50 px-4 py-3 text-white placeholder-slate-500 transition-all hover:border-slate-600 focus:border-blue-600 focus:outline-none disabled:opacity-50"
           />
@@ -131,8 +180,13 @@ export function StakeForm({ pool, availableBalance }: StakeFormProps) {
           </button>
         </div>
         <p className="mt-2 text-xs text-slate-400">
-          Available: {availableBalance.toFixed(2)} SOL • Min:{" "}
-          {pool.minimumStake} SOL
+          Available:{" "}
+          {isBalanceLoading
+            ? "Loading"
+            : `${availableBalance.toFixed(
+              Math.min(stakeDecimals, 6)
+            )} ${balanceLabel}`}{" "}
+          • Min: {pool.minimumStake} {balanceLabel}
         </p>
       </div>
 
@@ -147,13 +201,14 @@ export function StakeForm({ pool, availableBalance }: StakeFormProps) {
           <div className="flex justify-between text-sm">
             <span className="text-slate-400">Est. Daily Rewards</span>
             <span className="text-emerald-400 font-semibold">
-              {calculateRewards().toFixed(4)} SOL
+              {calculateRewards().toFixed(4)} {balanceLabel}
             </span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-slate-400">Est. Yearly Rewards</span>
             <span className="text-emerald-400 font-semibold">
-              {((parseFloat(amount) * pool.apy) / 100).toFixed(2)} SOL
+              {((parseFloat(amount) * pool.apy) / 100).toFixed(2)}{" "}
+              {balanceLabel}
             </span>
           </div>
         </div>

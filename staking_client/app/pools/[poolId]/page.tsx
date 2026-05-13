@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useStakingStore } from '@/lib/store';
 import { StatCard } from '@/components/dashboard/stat-card';
 import { PositionCard } from '@/components/dashboard/position-card';
@@ -14,7 +15,11 @@ import { useParams } from 'next/navigation';
 export default function PoolDetailPage() {
   const params = useParams();
   const poolId = params.poolId as string;
-  const { getPoolById, getUserPosition } = useStakingStore();
+  const { getPoolById, getUserPosition, initializeStore } = useStakingStore();
+
+  useEffect(() => {
+    initializeStore();
+  }, [initializeStore]);
 
   const pool = getPoolById(poolId);
   const userPosition = getUserPosition(poolId);

@@ -8,7 +8,8 @@ import { Card } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
 import { useWallet, useConnection, useAnchorWallet } from '@solana/wallet-adapter-react'
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
-import { PublicKey } from '@solana/web3.js'
+import { LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js'
+import { NATIVE_MINT } from '@solana/spl-token'
 import { getProvider } from '@/lib/anchor'
 import { createPool, derivePoolPdas } from '@/lib/instructions/create-pool'
 
@@ -31,6 +32,18 @@ function truncate(addr: string, chars = 8): string {
 function solscanTxUrl(sig: string): string {
     const cluster = process.env.NEXT_PUBLIC_RPC_URL ? '' : '?cluster=devnet'
     return `https://solscan.io/tx/${sig}${cluster}`
+}
+
+function isNativeStakeMint(value: string): boolean {
+    try {
+        return new PublicKey(value).equals(NATIVE_MINT)
+    } catch {
+        return false
+    }
+}
+
+function toNativeLamports(value: string): number {
+    return Math.round(Number(value) * LAMPORTS_PER_SOL)
 }
 
 // ─── component ──────────────────────────────────────────────────────────────
@@ -119,8 +132,16 @@ export default function CreateStakingPool() {
         } else if (parseInt(formData.cooldownDuration) <= 0) {
             newErrors.cooldownDuration = 'Cooldown must be > 0 seconds'
         }
-        if (!formData.depositCap || parseInt(formData.depositCap) < 0) {
+        const depositCapValue = Number(formData.depositCap)
+        if (!formData.depositCap || !Number.isFinite(depositCapValue) || depositCapValue < 0) {
             newErrors.depositCap = 'Deposit cap must be >= 0'
+        } else if (isNativeStakeMint(formData.stakeTokenMint)) {
+            const depositCapLamports = toNativeLamports(formData.depositCap)
+            if (!Number.isSafeInteger(depositCapLamports)) {
+                newErrors.depositCap = 'Deposit cap is too large'
+            }
+        } else if (!Number.isSafeInteger(depositCapValue)) {
+            newErrors.depositCap = 'Deposit cap must be an integer number of base units'
         }
 
         setErrors(newErrors)
@@ -145,15 +166,19 @@ export default function CreateStakingPool() {
 
         try {
             const provider = getProvider(connection, anchorWallet)
+            const stakeMint = new PublicKey(formData.stakeTokenMint)
+            const depositCap = stakeMint.equals(NATIVE_MINT)
+                ? toNativeLamports(formData.depositCap)
+                : Number(formData.depositCap)
 
             const sig = await createPool(provider, {
                 poolId: Number(formData.poolId),
-                stakeMint: new PublicKey(formData.stakeTokenMint),
+                stakeMint,
                 rewardMint: new PublicKey(formData.rewardTokenMint),
                 aprBps: Number(formData.apr),
                 lockDuration: Number(formData.lockDuration),
                 cooldownDuration: Number(formData.cooldownDuration),
-                depositCap: Number(formData.depositCap),
+                depositCap,
             })
 
             setTxSig(sig)
@@ -364,14 +389,16 @@ export default function CreateStakingPool() {
                         {/* Deposit Cap */}
                         <div>
                             <div className="flex items-center gap-2">
-                                <label className="text-sm font-medium text-slate-300">Deposit Cap (token units)</label>
-                                <Tooltip text="Maximum total tokens that can be staked in this pool. 0 = no cap." />
+                                <label className="text-sm font-medium text-slate-300">
+                                    Deposit Cap ({isNativeStakeMint(formData.stakeTokenMint) ? 'SOL' : 'base units'})
+                                </label>
+                                <Tooltip text="Maximum total tokens that can be staked in this pool. Native SOL is converted to lamports on-chain. 0 = no cap." />
                             </div>
                             <Input
                                 id="deposit-cap"
                                 type="number"
                                 min="0"
-                                placeholder="1000000"
+                                placeholder={isNativeStakeMint(formData.stakeTokenMint) ? '1000' : '1000000'}
                                 value={formData.depositCap}
                                 onChange={(e) => handleInputChange('depositCap', e.target.value)}
                                 className="mt-2 border-slate-700 bg-slate-800 text-white placeholder-slate-500"
