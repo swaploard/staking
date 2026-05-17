@@ -83,6 +83,9 @@ model Stakingpool {
   lastUpdatedSlot BigInt
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+  name            String   @default("")
+  description     String   @default("")
+  stakers         BigInt   @default(0)
 
   @@index([authority])
   @@index([lastUpdatedSlot])
