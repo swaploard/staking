@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { StakingPool } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, Users, Lock } from 'lucide-react';
+import { Hash, TrendingUp, Users, Lock } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface PoolCardProps {
@@ -107,7 +107,11 @@ export function PoolCard({ pool, userStaked = 0 }: PoolCardProps) {
           </div>
 
           {/* Meta */}
-          <div className="flex gap-4" style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+          <div className="flex flex-wrap gap-4" style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+            <div className="flex items-center gap-1.5">
+              <Hash style={{ width: '13px', height: '13px' }} />
+              Pool ID {pool.poolId ?? 'N/A'}
+            </div>
             <div className="flex items-center gap-1.5">
               <Users style={{ width: '13px', height: '13px' }} />
               {pool.totalStakers.toLocaleString()} stakers
