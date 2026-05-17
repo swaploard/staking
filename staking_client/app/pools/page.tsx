@@ -181,7 +181,7 @@ export default function PoolsPage() {
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.15 + idx * 0.03 }}
                 >
-                  {pool.poolId == 114 && <PoolCard pool={pool} userStaked={userPosition?.stakedAmount || 0} />}
+                  <PoolCard pool={pool} userStaked={userPosition?.stakedAmount || 0} />
                 </motion.div>
               );
             })}
