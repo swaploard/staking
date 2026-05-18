@@ -3,6 +3,58 @@
 import { create } from "zustand";
 import { StakingPool, UserPosition, StakingAction, ActionState } from "./types";
 
+type PoolApiRecord = {
+  id: string;
+  poolId: number | null;
+  name?: string | null;
+  description?: string | null;
+  tokenMint: string;
+  rewardMint: string;
+  aprBps?: string;
+  apy?: number;
+  stakedAmount?: string;
+  tvl?: number;
+  stakers?: number | string;
+  totalStakers?: number | string;
+  status?: string;
+};
+
+function numberFromApi(value: unknown, fallback = 0) {
+  const numberValue =
+    typeof value === "number" ? value : Number.parseFloat(String(value ?? ""));
+  return Number.isFinite(numberValue) ? numberValue : fallback;
+}
+
+function mapPoolFromApi(pool: PoolApiRecord): StakingPool {
+  const apy =
+    typeof pool.apy === "number" ? pool.apy : numberFromApi(pool.aprBps) / 100;
+  const tvl =
+    pool.stakedAmount !== undefined
+      ? numberFromApi(pool.stakedAmount) / 1e9
+      : numberFromApi(pool.tvl);
+  const status =
+    pool.status === "inactive" || pool.status === "maintenance"
+      ? pool.status
+      : "active";
+
+  return {
+    id: pool.id,
+    poolId: pool.poolId,
+    name: pool.name || `Pool ${pool.poolId ?? pool.id.slice(0, 6)}`,
+    description: pool.description || "Staking pool",
+    stakeMint: pool.tokenMint,
+    rewardMint: pool.rewardMint,
+    apy,
+    tvl,
+    totalStakers: Math.trunc(
+      numberFromApi(pool.totalStakers ?? pool.stakers),
+    ),
+    minimumStake: 0.1,
+    rewardToken: pool.rewardMint,
+    status,
+  };
+}
+
 interface StakingStore {
   pools: StakingPool[];
   userPositions: UserPosition[];
@@ -19,6 +71,7 @@ interface StakingStore {
     activePositions: number;
   };
   fetchPools: () => Promise<void>;
+  fetchPoolById: (poolId: string) => Promise<void>;
   initializeStore: () => void;
   simulateRewardAccrual: () => void;
   stakeTokens: (
@@ -84,42 +137,7 @@ export const useStakingStore = create<StakingStore>()((set, get) => ({
        const response = await fetch("/api/stakingpools");
        const data = await response.json();
        if (data.pools) {
-         const pools: StakingPool[] = data.pools.map((pool: {
-           id: string;
-           poolId: number | null;
-           name: string;
-           description: string;
-           authority: string;
-           tokenMint: string;
-           rewardMint: string;
-           aprBps?: string;
-           apy?: number;
-           stakedAmount: string;
-           rewardAmount: string;
-           startTime: string;
-           endTime?: string;
-           lockUpPeriod: string;
-         }) => {
-           const apy =
-             typeof pool.apy === "number"
-               ? pool.apy
-               : Number(pool.aprBps ?? "0") / 100;
-
-           return ({
-           id: pool.id,
-           poolId: pool.poolId,
-           name: pool.name,
-           description: pool.description,
-           stakeMint: pool.tokenMint,
-           rewardMint: pool.rewardMint,
-           apy,
-           tvl: parseFloat(pool.stakedAmount) / 1e9,
-           totalStakers: 0,
-           minimumStake: 0.1,
-           rewardToken: pool.rewardMint,
-           status: "active",
-           });
-         });
+         const pools: StakingPool[] = data.pools.map(mapPoolFromApi);
          console.log("Fetched pools:", pools);
          set({ pools, isLoading: false });
        }
@@ -128,6 +146,36 @@ export const useStakingStore = create<StakingStore>()((set, get) => ({
        set({ isLoading: false });
      }
    },
+  fetchPoolById: async (poolId: string) => {
+    set({ isLoading: true });
+    try {
+      const response = await fetch(`/api/pools/${encodeURIComponent(poolId)}`, {
+        cache: "no-store",
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to fetch pool");
+      }
+
+      if (data.pool) {
+        const pool = mapPoolFromApi(data.pool);
+        set((state) => ({
+          pools: state.pools.some((current) => current.id === pool.id)
+            ? state.pools.map((current) =>
+                current.id === pool.id ? pool : current,
+              )
+            : [...state.pools, pool],
+          isLoading: false,
+        }));
+      } else {
+        set({ isLoading: false });
+      }
+    } catch (error) {
+      console.error(`Failed to fetch pool ${poolId}:`, error);
+      set({ isLoading: false });
+    }
+  },
   initializeStore: () => {
     get().fetchPools();
   },

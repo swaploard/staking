@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useStakingStore } from '@/lib/store';
 import { StatCard } from '@/components/dashboard/stat-card';
 import { PositionCard } from '@/components/dashboard/position-card';
@@ -12,17 +12,56 @@ import { TrendingUp, Users, Lock, BarChart3 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 
+function formatSolAmount(amount: number) {
+  return amount.toLocaleString(undefined, {
+    maximumFractionDigits: amount >= 100 ? 0 : 2,
+  });
+}
+
 export default function PoolDetailPage() {
   const params = useParams();
   const poolId = params.poolId as string;
-  const { getPoolById, getUserPosition, initializeStore } = useStakingStore();
+  const { getPoolById, getUserPosition, fetchPoolById, isLoading } = useStakingStore();
+  const [hasLoadedPoolDetail, setHasLoadedPoolDetail] = useState(false);
 
   useEffect(() => {
-    initializeStore();
-  }, [initializeStore]);
+    let isMounted = true;
+
+    setHasLoadedPoolDetail(false);
+    fetchPoolById(poolId).finally(() => {
+      if (isMounted) {
+        setHasLoadedPoolDetail(true);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [fetchPoolById, poolId]);
 
   const pool = getPoolById(poolId);
   const userPosition = getUserPosition(poolId);
+
+  if (!pool && (!hasLoadedPoolDetail || isLoading)) {
+    return (
+      <main className="min-h-screen" style={{ backgroundColor: 'var(--bg-primary)' }}>
+        <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+          <div
+            style={{
+              backgroundColor: 'var(--bg-secondary)',
+              border: '1px solid var(--border-default)',
+              borderRadius: '8px',
+              padding: '48px 24px',
+              textAlign: 'center',
+              color: 'var(--text-secondary)',
+            }}
+          >
+            Loading pool details...
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   if (!pool) {
     return (
@@ -59,7 +98,10 @@ export default function PoolDetailPage() {
     );
   }
 
-  const tvlInMillions = (pool.tvl / 1000000).toFixed(2);
+  const tvlValue =
+    pool.tvl >= 1000000
+      ? `${(pool.tvl / 1000000).toFixed(2)}M SOL`
+      : `${formatSolAmount(pool.tvl)} SOL`;
   const statusStyles: Record<string, { bg: string; color: string }> = {
     active: { bg: 'rgba(39, 166, 68, 0.12)', color: '#27a644' },
     inactive: { bg: 'rgba(138, 143, 152, 0.12)', color: '#8a8f98' },
@@ -118,9 +160,9 @@ export default function PoolDetailPage() {
           />
           <StatCard
             label="Total Value Locked"
-            value={`$${tvlInMillions}M`}
+            value={tvlValue}
             icon={BarChart3}
-            subtext={`${pool.tvl.toLocaleString()} SOL`}
+            subtext="Active stake in this pool"
           />
           <StatCard
             label="Total Stakers"

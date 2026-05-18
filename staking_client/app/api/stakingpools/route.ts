@@ -22,6 +22,7 @@ type PoolRow = {
     updatedAt: Date
     name: string
     description: string
+    stakers?: bigint
 }
 
 type PoolMetadata = {
@@ -164,12 +165,53 @@ async function getAprFallbacks(poolRows: PoolRow[], metadataById: Map<string, Po
     return aprBpsFallbackByPoolId
 }
 
+type ActivePoolStats = {
+    stakers: number
+    totalStaked: bigint
+}
+
+async function getActivePoolStats(poolIds: string[]) {
+    if (poolIds.length === 0) return new Map<string, ActivePoolStats>()
+
+    const stats = await prisma.userPosition.groupBy({
+        by: ['pool'],
+        where: {
+            pool: { in: poolIds },
+            shares: { gt: 0n },
+        },
+        _count: {
+            _all: true,
+        },
+        _sum: {
+            shares: true,
+        },
+    })
+
+    return new Map(
+        stats.map((row) => [
+            row.pool,
+            {
+                stakers: row._count._all,
+                totalStaked: row._sum.shares ?? 0n,
+            },
+        ])
+    )
+}
+
+function effectiveStakedAmount(poolStakedAmount: bigint, positionStakedAmount?: bigint) {
+    return positionStakedAmount && positionStakedAmount > 0n
+        ? positionStakedAmount
+        : poolStakedAmount
+}
+
 async function serializePools(poolRows: PoolRow[]) {
     const metadataById = await getPoolMetadataById(poolRows.map((pool) => pool.id))
     const aprBpsFallbackByPoolId = await getAprFallbacks(poolRows, metadataById)
+    const activePoolStats = await getActivePoolStats(poolRows.map((pool) => pool.id))
 
     return poolRows.map((pool) => {
         const metadata = metadataById.get(pool.id)
+        const stats = activePoolStats.get(pool.id)
         const effectiveAprBps =
             metadata?.aprBps && Number(metadata.aprBps) > 0
                 ? metadata.aprBps
@@ -181,7 +223,10 @@ async function serializePools(poolRows: PoolRow[]) {
             description: metadata?.description ?? pool.description ?? '',
             aprBps: effectiveAprBps.toString(),
             apy: Number(effectiveAprBps) / 100,
-            stakedAmount: pool.stakedAmount.toString(),
+            stakedAmount: effectiveStakedAmount(
+                pool.stakedAmount,
+                stats?.totalStaked
+            ).toString(),
             rewardAmount: pool.rewardAmount.toString(),
             rewardPerShare: pool.rewardPerShare.toString(),
             totalShares: pool.totalShares.toString(),
@@ -189,6 +234,8 @@ async function serializePools(poolRows: PoolRow[]) {
             startTime: pool.startTime.toString(),
             endTime: pool.endTime?.toString(),
             lastUpdatedSlot: pool.lastUpdatedSlot.toString(),
+            stakers: stats?.stakers ?? Number(pool.stakers ?? 0n),
+            totalStakers: stats?.stakers ?? Number(pool.stakers ?? 0n),
         }
     })
 }
@@ -212,6 +259,8 @@ export async function GET() {
                 id: 'asc',
             },
         })
+
+        const stakingpoolById = new Map(selectedPools.map((pool) => [pool.id, pool]))
 
         const sourcePools = await prisma.pool.findMany({
             where: {
@@ -239,7 +288,10 @@ export async function GET() {
             },
         })
         const sourcePoolById = new Map(sourcePools.map((pool) => [pool.id, pool]))
-        const hydratedPools = selectedPools.map((pool) => sourcePoolById.get(pool.id) ?? pool)
+        const hydratedPools: PoolRow[] = selectedPools.flatMap((pool): PoolRow[] => {
+            const poolData = sourcePoolById.get(pool.id)
+            return poolData ? [{ ...poolData, stakers: pool.stakers }] : []
+        })
         const serializedPools = await serializePools(hydratedPools)
 
         return NextResponse.json(
@@ -315,30 +367,30 @@ export async function POST(request: NextRequest) {
             prisma.stakingpool.deleteMany({
                 where: poolIds.length > 0 ? { id: { notIn: poolIds } } : {},
             }),
-             ...sourcePools.map((pool) =>
-                 prisma.stakingpool.upsert({
-                     where: { id: pool.id },
-                     create: pool,
-                     update: {
-                         poolId: pool.poolId,
-                         authority: pool.authority,
-                         tokenMint: pool.tokenMint,
-                         rewardMint: pool.rewardMint,
-                         vaultBump: pool.vaultBump,
-                         stakedAmount: pool.stakedAmount,
-                         rewardAmount: pool.rewardAmount,
-                         rewardPerShare: pool.rewardPerShare,
-                         totalShares: pool.totalShares,
-                         lockUpPeriod: pool.lockUpPeriod,
-                         startTime: pool.startTime,
-                         endTime: pool.endTime,
-                         lastUpdatedSlot: pool.lastUpdatedSlot,
-                         updatedAt: pool.updatedAt,
-                         name: pool.name,
-                         description: pool.description,
-                     },
-                 })
-             ),
+            ...sourcePools.map((pool) =>
+                prisma.stakingpool.upsert({
+                    where: { id: pool.id },
+                    create: pool,
+                    update: {
+                        poolId: pool.poolId,
+                        authority: pool.authority,
+                        tokenMint: pool.tokenMint,
+                        rewardMint: pool.rewardMint,
+                        vaultBump: pool.vaultBump,
+                        stakedAmount: pool.stakedAmount,
+                        rewardAmount: pool.rewardAmount,
+                        rewardPerShare: pool.rewardPerShare,
+                        totalShares: pool.totalShares,
+                        lockUpPeriod: pool.lockUpPeriod,
+                        startTime: pool.startTime,
+                        endTime: pool.endTime,
+                        lastUpdatedSlot: pool.lastUpdatedSlot,
+                        updatedAt: pool.updatedAt,
+                        name: pool.name,
+                        description: pool.description,
+                    },
+                })
+            ),
         ])
 
         const serializedPools = await serializePools(sourcePools)

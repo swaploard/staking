@@ -29,6 +29,45 @@ function extractAprBpsFromMetadata(metadata: unknown): bigint | null {
     return null
 }
 
+type ActivePoolStats = {
+    stakers: number
+    totalStaked: bigint
+}
+
+async function getActivePoolStats(poolIds: string[]) {
+    if (poolIds.length === 0) return new Map<string, ActivePoolStats>()
+
+    const stats = await prisma.userPosition.groupBy({
+        by: ['pool'],
+        where: {
+            pool: { in: poolIds },
+            shares: { gt: 0n },
+        },
+        _count: {
+            _all: true,
+        },
+        _sum: {
+            shares: true,
+        },
+    })
+
+    return new Map(
+        stats.map((row) => [
+            row.pool,
+            {
+                stakers: row._count._all,
+                totalStaked: row._sum.shares ?? 0n,
+            },
+        ])
+    )
+}
+
+function effectiveStakedAmount(poolStakedAmount: bigint, positionStakedAmount?: bigint) {
+    return positionStakedAmount && positionStakedAmount > 0n
+        ? positionStakedAmount
+        : poolStakedAmount
+}
+
 /**
  * GET /api/pools
  *
@@ -216,29 +255,42 @@ export async function GET(request: NextRequest) {
             nextCursor = Buffer.from(lastPool.id, 'utf-8').toString('base64')
         }
 
+        const activePoolStats = await getActivePoolStats(
+            resultPools.map((pool) => pool.id)
+        )
+
         // Convert BigInt fields to strings for JSON serialization
-        const serializedPools = resultPools.map((pool: typeof resultPools[number]) => ({
-            ...pool,
-            poolId: pool.poolId,
-            aprBps: (
-                pool.aprBps && Number(pool.aprBps) > 0
-                    ? pool.aprBps
-                    : aprBpsFallbackByPoolId.get(pool.id) ?? 0n
-            ).toString(),
-            apy: Number(
-                pool.aprBps && Number(pool.aprBps) > 0
-                    ? pool.aprBps
-                    : aprBpsFallbackByPoolId.get(pool.id) ?? 0n
-            ) / 100,
-            stakedAmount: pool.stakedAmount.toString(),
-            rewardAmount: pool.rewardAmount.toString(),
-            rewardPerShare: pool.rewardPerShare.toString(),
-            totalShares: pool.totalShares.toString(),
-            lockUpPeriod: pool.lockUpPeriod.toString(),
-            startTime: pool.startTime.toString(),
-            endTime: pool.endTime?.toString(),
-            lastUpdatedSlot: pool.lastUpdatedSlot.toString(),
-        }))
+        const serializedPools = resultPools.map((pool: typeof resultPools[number]) => {
+            const stats = activePoolStats.get(pool.id)
+
+            return {
+                ...pool,
+                poolId: pool.poolId,
+                aprBps: (
+                    pool.aprBps && Number(pool.aprBps) > 0
+                        ? pool.aprBps
+                        : aprBpsFallbackByPoolId.get(pool.id) ?? 0n
+                ).toString(),
+                apy: Number(
+                    pool.aprBps && Number(pool.aprBps) > 0
+                        ? pool.aprBps
+                        : aprBpsFallbackByPoolId.get(pool.id) ?? 0n
+                ) / 100,
+                stakedAmount: effectiveStakedAmount(
+                    pool.stakedAmount,
+                    stats?.totalStaked
+                ).toString(),
+                rewardAmount: pool.rewardAmount.toString(),
+                rewardPerShare: pool.rewardPerShare.toString(),
+                totalShares: pool.totalShares.toString(),
+                lockUpPeriod: pool.lockUpPeriod.toString(),
+                startTime: pool.startTime.toString(),
+                endTime: pool.endTime?.toString(),
+                lastUpdatedSlot: pool.lastUpdatedSlot.toString(),
+                stakers: stats?.stakers ?? 0,
+                totalStakers: stats?.stakers ?? 0,
+            }
+        })
 
         // Set cache headers: 5-second TTL for list endpoints
         const headers = {

@@ -11,6 +11,12 @@ interface PoolCardProps {
   userStaked?: number;
 }
 
+function formatSolAmount(amount: number) {
+  return amount.toLocaleString(undefined, {
+    maximumFractionDigits: amount >= 100 ? 0 : 2,
+  });
+}
+
 export function PoolCard({ pool, userStaked = 0 }: PoolCardProps) {
   const statusStyles: Record<string, { bg: string; color: string }> = {
     active: { bg: 'rgba(39, 166, 68, 0.12)', color: '#27a644' },
@@ -19,7 +25,10 @@ export function PoolCard({ pool, userStaked = 0 }: PoolCardProps) {
   };
 
   const status = statusStyles[pool.status] || statusStyles.inactive;
-  const tvlInMillions = (pool.tvl / 1000000).toFixed(2);
+  const tvlValue =
+    pool.tvl >= 1000000
+      ? `${(pool.tvl / 1000000).toFixed(2)}M SOL`
+      : `${formatSolAmount(pool.tvl)} SOL`;
 
   return (
     <Link href={`/pools/${pool.id}`}>
@@ -101,7 +110,7 @@ export function PoolCard({ pool, userStaked = 0 }: PoolCardProps) {
                 TVL
               </p>
               <p style={{ marginTop: '6px', fontSize: '20px', fontWeight: 590, color: 'var(--text-primary)' }}>
-                ${tvlInMillions}M
+                {tvlValue}
               </p>
             </div>
           </div>

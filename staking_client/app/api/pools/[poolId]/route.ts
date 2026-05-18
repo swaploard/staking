@@ -29,6 +29,35 @@ function extractAprBpsFromMetadata(metadata: unknown): bigint | null {
     return null
 }
 
+async function getActivePoolStats(poolId: string) {
+    const [stakers, stake] = await Promise.all([
+        prisma.userPosition.count({
+            where: {
+                pool: poolId,
+                shares: { gt: 0n },
+            },
+        }),
+        prisma.userPosition.aggregate({
+            where: {
+                pool: poolId,
+                shares: { gt: 0n },
+            },
+            _sum: {
+                shares: true,
+            },
+        }),
+    ])
+
+    return {
+        stakers,
+        totalStaked: stake._sum.shares ?? 0n,
+    }
+}
+
+function effectiveStakedAmount(poolStakedAmount: bigint, positionStakedAmount: bigint) {
+    return positionStakedAmount > 0n ? positionStakedAmount : poolStakedAmount
+}
+
 /**
  * GET /api/pools/[poolId]
  *
@@ -171,6 +200,11 @@ export async function GET(
         }
 
         const effectiveAprBps = poolAprBps > 0n ? poolAprBps : fallbackAprBps
+        const activePoolStats = await getActivePoolStats(poolId)
+        const displayedStakedAmount = effectiveStakedAmount(
+            pool.stakedAmount,
+            activePoolStats.totalStaked
+        )
 
         // Parse activity cursor if provided
         let cursorId: bigint | undefined = undefined
@@ -229,7 +263,9 @@ export async function GET(
             ...pool,
             aprBps: effectiveAprBps.toString(),
             apy: Number(effectiveAprBps) / 100,
-            stakedAmount: pool.stakedAmount.toString(),
+            stakers: activePoolStats.stakers,
+            totalStakers: activePoolStats.stakers,
+            stakedAmount: displayedStakedAmount.toString(),
             rewardAmount: pool.rewardAmount.toString(),
             rewardPerShare: pool.rewardPerShare.toString(),
             totalShares: pool.totalShares.toString(),
