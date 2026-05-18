@@ -94,22 +94,29 @@ export function Header() {
           </Link>
 
           {/* Navigation */}
-          <nav className="hidden md:flex items-center gap-6">
-            <Link
-              href="/"
-              style={navLinkStyle(pathname === '/')}
-              className="hover:!text-[var(--text-primary)]"
-            >
-              Dashboard
-            </Link>
-            <Link
-              href="/pools"
-              style={navLinkStyle(pathname === '/pools' || pathname.startsWith('/pools/'))}
-              className="hover:!text-[var(--text-primary)]"
-            >
-              Pools
-            </Link>
-          </nav>
+           <nav className="hidden md:flex items-center gap-6">
+             <Link
+               href="/"
+               style={navLinkStyle(pathname === '/')}
+               className="hover:!text-[var(--text-primary)]"
+             >
+               Dashboard
+             </Link>
+             <Link
+               href="/pools"
+               style={navLinkStyle(pathname === '/pools' || pathname.startsWith('/pools/'))}
+               className="hover:!text-[var(--text-primary)]"
+             >
+               Pools
+             </Link>
+             <Link
+               href="/staking-pools"
+               style={navLinkStyle(pathname === '/staking-pools' || pathname.startsWith('/staking-pools/'))}
+               className="hover:!text-[var(--text-primary)]"
+             >
+               Staking Pools
+             </Link>
+           </nav>
 
           {/* Wallet Info */}
           {connected ? (
@@ -140,23 +147,30 @@ export function Header() {
           )}
         </div>
 
-        {/* Mobile Navigation */}
-        <nav className="md:hidden flex gap-4" style={{ paddingBottom: '8px' }}>
-          <Link
-            href="/"
-            style={navLinkStyle(pathname === '/')}
-            className="hover:!text-[var(--text-primary)]"
-          >
-            Dashboard
-          </Link>
-          <Link
-            href="/pools"
-            style={navLinkStyle(pathname === '/pools' || pathname.startsWith('/pools/'))}
-            className="hover:!text-[var(--text-primary)]"
-          >
-            Pools
-          </Link>
-        </nav>
+         {/* Mobile Navigation */}
+         <nav className="md:hidden flex gap-4" style={{ paddingBottom: '8px' }}>
+           <Link
+             href="/"
+             style={navLinkStyle(pathname === '/')}
+             className="hover:!text-[var(--text-primary)]"
+           >
+             Dashboard
+           </Link>
+           <Link
+             href="/pools"
+             style={navLinkStyle(pathname === '/pools' || pathname.startsWith('/pools/'))}
+             className="hover:!text-[var(--text-primary)]"
+           >
+             Pools
+           </Link>
+           <Link
+             href="/staking-pools"
+             style={navLinkStyle(pathname === '/staking-pools' || pathname.startsWith('/staking-pools/'))}
+             className="hover:!text-[var(--text-primary)]"
+           >
+             Staking Pools
+           </Link>
+         </nav>
       </div>
     </header>
   );
