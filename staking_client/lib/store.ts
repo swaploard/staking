@@ -78,56 +78,56 @@ export const useStakingStore = create<StakingStore>()((set, get) => ({
     };
   },
 
-  fetchPools: async () => {
-    set({ isLoading: true });
-    try {
-      const response = await fetch("/api/pools?limit=100");
-      const data = await response.json();
-      if (data.pools) {
-        const pools: StakingPool[] = data.pools.map((pool: {
-          id: string;
-          poolId: number | null;
-          name: string;
-          description: string;
-          authority: string;
-          tokenMint: string;
-          rewardMint: string;
-          aprBps?: string;
-          apy?: number;
-          stakedAmount: string;
-          rewardAmount: string;
-          startTime: string;
-          endTime?: string;
-          lockUpPeriod: string;
-        }) => {
-          const apy =
-            typeof pool.apy === "number"
-              ? pool.apy
-              : Number(pool.aprBps ?? "0") / 100;
+   fetchPools: async () => {
+     set({ isLoading: true });
+     try {
+       const response = await fetch("/api/stakingpools");
+       const data = await response.json();
+       if (data.pools) {
+         const pools: StakingPool[] = data.pools.map((pool: {
+           id: string;
+           poolId: number | null;
+           name: string;
+           description: string;
+           authority: string;
+           tokenMint: string;
+           rewardMint: string;
+           aprBps?: string;
+           apy?: number;
+           stakedAmount: string;
+           rewardAmount: string;
+           startTime: string;
+           endTime?: string;
+           lockUpPeriod: string;
+         }) => {
+           const apy =
+             typeof pool.apy === "number"
+               ? pool.apy
+               : Number(pool.aprBps ?? "0") / 100;
 
-          return ({
-          id: pool.id,
-          poolId: pool.poolId,
-          name: pool.name,
-          description: pool.description,
-          stakeMint: pool.tokenMint,
-          rewardMint: pool.rewardMint,
-          apy,
-          tvl: parseFloat(pool.stakedAmount) / 1e9,
-          totalStakers: 0,
-          minimumStake: 0.1,
-          rewardToken: pool.rewardMint,
-          status: "active",
-          });
-        });
-        console.log("Fetched pools:", pools);
-        set({ pools, isLoading: false });
-      }
-    } catch (error) {
-      console.error("Failed to fetch pools:", error);
-      set({ isLoading: false });
-    }
-  },
+           return ({
+           id: pool.id,
+           poolId: pool.poolId,
+           name: pool.name,
+           description: pool.description,
+           stakeMint: pool.tokenMint,
+           rewardMint: pool.rewardMint,
+           apy,
+           tvl: parseFloat(pool.stakedAmount) / 1e9,
+           totalStakers: 0,
+           minimumStake: 0.1,
+           rewardToken: pool.rewardMint,
+           status: "active",
+           });
+         });
+         console.log("Fetched pools:", pools);
+         set({ pools, isLoading: false });
+       }
+     } catch (error) {
+       console.error("Failed to fetch pools:", error);
+       set({ isLoading: false });
+     }
+   },
   initializeStore: () => {
     get().fetchPools();
   },
