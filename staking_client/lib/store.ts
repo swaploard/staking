@@ -17,6 +17,7 @@ type PoolApiRecord = {
   stakers?: number | string;
   totalStakers?: number | string;
   status?: string;
+  rewardPerShare?: string;
 };
 
 function numberFromApi(value: unknown, fallback = 0) {
@@ -52,6 +53,7 @@ function mapPoolFromApi(pool: PoolApiRecord): StakingPool {
     minimumStake: 0.1,
     rewardToken: pool.rewardMint,
     status,
+    rewardPerShare: pool.rewardPerShare,
   };
 }
 
@@ -72,6 +74,7 @@ interface StakingStore {
   };
   fetchPools: () => Promise<void>;
   fetchPoolById: (poolId: string) => Promise<void>;
+  fetchUserPositions: (pubkey: string | undefined) => Promise<void>;
   initializeStore: () => void;
   simulateRewardAccrual: () => void;
   stakeTokens: (
@@ -174,6 +177,51 @@ export const useStakingStore = create<StakingStore>()((set, get) => ({
     } catch (error) {
       console.error(`Failed to fetch pool ${poolId}:`, error);
       set({ isLoading: false });
+    }
+  },
+  fetchUserPositions: async (pubkey: string | undefined) => {
+    if (!pubkey) {
+      set({ userPositions: [] });
+      return;
+    }
+
+    try {
+      if (get().pools.length === 0) {
+        await get().fetchPools();
+      }
+
+      const response = await fetch(`/api/wallet/${encodeURIComponent(pubkey)}/positions`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch user positions");
+      }
+      const data = await response.json();
+
+      if (data.positions) {
+        const mappedPositions = data.positions.map((pos: any) => {
+          const pool = get().pools.find((p) => p.id === pos.pool);
+          
+          const shares = Number(pos.shares);
+          const rewardDebt = Number(pos.rewardDebt);
+          const rewardPerShare = pool?.rewardPerShare ? Number(pool.rewardPerShare) : 0;
+          
+          const pendingRewardsLamports = Math.max(0, (shares * rewardPerShare) / 1e12 - rewardDebt);
+          const rewardsEarned = pendingRewardsLamports / 1e9;
+
+          return {
+            poolId: pos.pool,
+            stakedAmount: shares / 1e9,
+            rewardsEarned,
+            claimedRewards: 0,
+            stakedAt: Number(pos.depositTime) * 1000,
+            unstakedAt: null,
+            cooldownPeriod: 0,
+          };
+        });
+
+        set({ userPositions: mappedPositions });
+      }
+    } catch (error) {
+      console.error("Failed to fetch user positions:", error);
     }
   },
   initializeStore: () => {

@@ -12,6 +12,8 @@ import { TrendingUp, Users, Lock, BarChart3 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 
+import { useWallet } from '@solana/wallet-adapter-react';
+
 function formatSolAmount(amount: number) {
   return amount.toLocaleString(undefined, {
     maximumFractionDigits: amount >= 100 ? 0 : 2,
@@ -21,7 +23,9 @@ function formatSolAmount(amount: number) {
 export default function PoolDetailPage() {
   const params = useParams();
   const poolId = params.poolId as string;
-  const { getPoolById, getUserPosition, fetchPoolById, isLoading } = useStakingStore();
+  const { getPoolById, getUserPosition, fetchPoolById, fetchUserPositions, isLoading } = useStakingStore();
+  const { connected, publicKey } = useWallet();
+  const walletPubkey = connected ? publicKey?.toBase58() : undefined;
   const [hasLoadedPoolDetail, setHasLoadedPoolDetail] = useState(false);
 
   useEffect(() => {
@@ -38,6 +42,10 @@ export default function PoolDetailPage() {
       isMounted = false;
     };
   }, [fetchPoolById, poolId]);
+
+  useEffect(() => {
+    fetchUserPositions(walletPubkey);
+  }, [walletPubkey, fetchUserPositions]);
 
   const pool = getPoolById(poolId);
   const userPosition = getUserPosition(poolId);

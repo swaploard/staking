@@ -9,16 +9,23 @@ import { Search, Filter, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
+import { useWallet } from '@solana/wallet-adapter-react';
 
 export default function StakingPoolsPage() {
   const { toast } = useToast();
-  const { pools, isLoading, initializeStore } = useStakingStore();
+  const { pools, userPositions, isLoading, initializeStore, fetchUserPositions } = useStakingStore();
+  const { connected, publicKey } = useWallet();
+  const walletPubkey = connected ? publicKey?.toBase58() : undefined;
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'apy' | 'tvl' | 'stakers'>('apy');
 
   useEffect(() => {
     initializeStore();
   }, [initializeStore]);
+
+  useEffect(() => {
+    fetchUserPositions(walletPubkey);
+  }, [walletPubkey, fetchUserPositions]);
 
   const basePools = pools;
 
@@ -178,17 +185,20 @@ export default function StakingPoolsPage() {
             transition={{ delay: 0.15, duration: 0.4 }}
             className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3"
           >
-            {sortedPools.map((pool, idx) => (
-              <motion.div
-                key={pool.id}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.15 + idx * 0.03 }}
-                className="relative"
-              >
-                <PoolCard pool={pool} />
-              </motion.div>
-            ))}
+            {sortedPools.map((pool, idx) => {
+              const userPosition = userPositions.find((pos) => pos.poolId === pool.id);
+              return (
+                <motion.div
+                  key={pool.id}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.15 + idx * 0.03 }}
+                  className="relative"
+                >
+                  <PoolCard pool={pool} userStaked={userPosition?.stakedAmount || 0} />
+                </motion.div>
+              );
+            })}
           </motion.div>
         )}
 

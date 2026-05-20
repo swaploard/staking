@@ -13,6 +13,7 @@ export interface StakingPool {
   minimumStake: number; // Minimum SOL to stake
   rewardToken: string; // Token address
   status: 'active' | 'inactive' | 'maintenance';
+  rewardPerShare?: string;
 }
 
 export interface UserPosition {

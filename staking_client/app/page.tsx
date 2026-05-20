@@ -14,7 +14,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 
 export default function Dashboard() {
-  const { pools, userPositions, getTotalStats, userWalletBalance, initializeStore } = useStakingStore();
+  const { pools, userPositions, getTotalStats, userWalletBalance, initializeStore, fetchUserPositions } = useStakingStore();
   const { connected, publicKey } = useWallet();
   const walletPubkey = connected ? publicKey?.toBase58() : undefined;
   const {
@@ -25,7 +25,11 @@ export default function Dashboard() {
 
   useEffect(() => {
     initializeStore();
-  }, []);
+  }, [initializeStore]);
+
+  useEffect(() => {
+    fetchUserPositions(walletPubkey);
+  }, [walletPubkey, fetchUserPositions]);
 
   const stats = getTotalStats();
   const userPositions_filled = userPositions.filter((pos) => pos.stakedAmount > 0);

@@ -10,10 +10,13 @@ import { motion } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
+import { useWallet } from '@solana/wallet-adapter-react';
 
 export default function PoolsPage() {
   const { toast } = useToast();
-  const { pools, userPositions, isLoading, initializeStore } = useStakingStore();
+  const { pools, userPositions, isLoading, initializeStore, fetchUserPositions } = useStakingStore();
+  const { connected, publicKey } = useWallet();
+  const walletPubkey = connected ? publicKey?.toBase58() : undefined;
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'apy' | 'tvl' | 'stakers'>('apy');
   const [selectedPoolIds, setSelectedPoolIds] = useState<Set<string>>(new Set());
@@ -24,6 +27,10 @@ export default function PoolsPage() {
   useEffect(() => {
     initializeStore();
   }, [initializeStore]);
+
+  useEffect(() => {
+    fetchUserPositions(walletPubkey);
+  }, [walletPubkey, fetchUserPositions]);
 
   useEffect(() => {
     let isMounted = true;
