@@ -529,15 +529,20 @@ export class AccountSyncJob {
         offset += 8;
 
         // reward_rate_per_second: u128 (16 bytes LE)
-        const rewardRatePerSecond = buffer.readBigUInt64LE(offset);
+        const rewardRateLow = buffer.readBigUInt64LE(offset);
+        const rewardRateHigh = buffer.readBigUInt64LE(offset + 8);
+        const rewardRatePerSecond = (rewardRateHigh << 64n) + rewardRateLow;
         offset += 16;
 
         // total_staked: u64
         const totalStaked = buffer.readBigUInt64LE(offset);
         offset += 8;
 
-        // cumulative_reward_per_token: u128 (16 bytes LE)
-        offset += 16; // Skip for now
+        // cumulative_reward_per_token / acc_reward_per_share: u128 (16 bytes LE)
+        const accRewardLow = buffer.readBigUInt64LE(offset);
+        const accRewardHigh = buffer.readBigUInt64LE(offset + 8);
+        const cumulativeRewardPerToken = (accRewardHigh << 64n) + accRewardLow;
+        offset += 16;
 
         // last_reward_time: i64
         offset += 8;
@@ -564,7 +569,7 @@ export class AccountSyncJob {
             vaultBump: 0, // Simplified
             stakedAmount: totalStaked,
             rewardAmount: BigInt(0), // Would need full buffer parsing
-            rewardPerShare: BigInt(0), // Would need calculation
+            rewardPerShare: cumulativeRewardPerToken,
             totalShares: depositCap,
             lockUpPeriod: lockDuration,
             startTime: BigInt(0), // Not in standard Pool struct
@@ -595,14 +600,18 @@ export class AccountSyncJob {
         const amount = buffer.readBigUInt64LE(offset);
         offset += 8;
 
-        // reward_debt: u128
-        const rewardDebt = buffer.readBigUInt64LE(offset);
+        // reward_debt: u128 (16 bytes LE)
+        const rdLow = buffer.readBigUInt64LE(offset);
+        const rdHigh = buffer.readBigUInt64LE(offset + 8);
+        const rewardDebt = (rdHigh << 64n) + rdLow;
         offset += 16;
 
         // pending_rewards: u64
+        const pendingRewards = buffer.readBigUInt64LE(offset);
         offset += 8;
 
         // pending_withdrawal: u64
+        const pendingWithdrawal = buffer.readBigUInt64LE(offset);
         offset += 8;
 
         // deposit_timestamp: i64
@@ -630,6 +639,8 @@ export class AccountSyncJob {
             depositAmount: amount,
             depositTime: depositTimestamp,
             rewardDebt: rewardDebt,
+            pendingRewards: pendingRewards,
+            pendingWithdrawal: pendingWithdrawal,
         };
     }
 
