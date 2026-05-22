@@ -129,20 +129,20 @@ export async function withdraw(
   const hasFullSupport = originalWallet.sendTransaction && originalWallet.signTransaction;
   const hasSeparateSign = originalWallet.signTransaction && !originalWallet.sendTransaction;
 
-  if (hasFullSupport) {
-    try {
-      const signature = await originalWallet.sendTransaction(tx, provider.connection, {
-        commitment: "confirmed",
-      });
-      await provider.connection.confirmTransaction(signature, "confirmed");
-      return signature;
-    } catch (err: any) {
-      if (err.message?.includes("disconnected port") || err.message?.includes("Failed to send")) {
-        throw new Error("Wallet connection interrupted. Please check if transaction was submitted and try again if it wasn't.");
-      }
-      throw err;
-    }
-  }
+   if (hasFullSupport) {
+     try {
+       const signature = await originalWallet.sendTransaction(tx, provider.connection, {
+         commitment: "confirmed",
+       });
+       await provider.connection.confirmTransaction(signature, "confirmed");
+       return signature;
+     } catch (err: any) {
+       if (err.message?.includes("disconnected port") || err.message?.includes("Failed to send")) {
+         throw new Error("Wallet connection interrupted. Please check if transaction was submitted and try again if it wasn't.");
+       }
+       throw new Error(`Unexpected error: ${err.message || err}`);
+     }
+   }
 
   if (hasSeparateSign) {
     try {

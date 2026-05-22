@@ -1,4 +1,11 @@
-import { PublicKey, Connection, Transaction } from "@solana/web3.js";
+import {
+  PublicKey,
+  Connection,
+  Transaction,
+  TransactionInstruction,
+  Signer,
+  VersionedTransaction,
+} from "@solana/web3.js";
 import BN from "bn.js";
 import { AnchorProvider, Program, Wallet } from "@coral-xyz/anchor";
 import {
@@ -16,24 +23,24 @@ export interface StakeWallet {
 }
 
 class WalletAdapterWallet implements Wallet {
-  constructor(
-    public publicKey: PublicKey,
-    private signFn: (tx: Transaction) => Promise<Transaction>,
-    private signAllFn: (txs: Transaction[]) => Promise<Transaction[]>,
-  ) {}
+   constructor(
+     public publicKey: PublicKey,
+     private signFn: (tx: Transaction | VersionedTransaction) => Promise<Transaction | VersionedTransaction>,
+     private signAllFn: (txs: (Transaction | VersionedTransaction)[]) => Promise<(Transaction | VersionedTransaction)[]>,
+   ) {}
 
-  async signTransaction(tx: Transaction): Promise<Transaction> {
-    return this.signFn(tx);
-  }
+   async signTransaction(tx: Transaction | VersionedTransaction): Promise<Transaction | VersionedTransaction> {
+     return this.signFn(tx);
+   }
 
-  async signAllTransactions(txs: Transaction[]): Promise<Transaction[]> {
-    return this.signAllFn(txs);
-  }
+   async signAllTransactions(txs: (Transaction | VersionedTransaction)[]): Promise<(Transaction | VersionedTransaction)[]> {
+     return this.signAllFn(txs);
+   }
 
-  async signMessage(msg: Uint8Array): Promise<Uint8Array> {
-    throw new Error("signMessage not implemented");
-  }
-}
+   async signMessage(msg: Uint8Array): Promise<Uint8Array> {
+     throw new Error("signMessage not implemented");
+   }
+ }
 
 function createStakeProvider(
   connection: Connection,
@@ -84,64 +91,64 @@ export interface UnstakeArgs {
 }
 
 export async function unstake(
-  provider: AnchorProvider,
-  args: UnstakeArgs,
+   provider: AnchorProvider,
+   args: UnstakeArgs,
 ): Promise<string> {
-  const program: Program<Staking> = getProgram(provider);
+   const program: Program<Staking> = getProgram(provider);
 
-  const { pool, userPosition } = deriveUnstakePdas(
-    args.poolId,
-    provider.wallet.publicKey,
-  );
+   const { pool, userPosition } = deriveUnstakePdas(
+     args.poolId,
+     provider.wallet.publicKey,
+   );
 
-  const tx = await program.methods
-    .requestUnstake(new BN(args.amount))
-    .accountsPartial({
-      user: provider.wallet.publicKey,
-      pool,
-      userPosition,
-    })
-    .transaction();
+   const tx = await program.methods
+     .requestUnstake(new BN(args.amount))
+     .accountsPartial({
+       user: provider.wallet.publicKey,
+       pool,
+       userPosition,
+     })
+     .transaction();
 
-  const { blockhash } = await provider.connection.getLatestBlockhash();
-  tx.recentBlockhash = blockhash;
-  tx.feePayer = provider.wallet.publicKey;
+   const { blockhash } = await provider.connection.getLatestBlockhash();
+   tx.recentBlockhash = blockhash;
+   tx.feePayer = provider.wallet.publicKey;
 
-  const originalWallet = (provider as any).wallet;
+   const originalWallet = (provider as any).wallet;
 
-  const hasFullSupport = originalWallet.sendTransaction && originalWallet.signTransaction;
-  const hasSeparateSign = originalWallet.signTransaction && !originalWallet.sendTransaction;
+   const hasFullSupport = originalWallet.sendTransaction && originalWallet.signTransaction;
+   const hasSeparateSign = originalWallet.signTransaction && !originalWallet.sendTransaction;
 
-  if (hasFullSupport) {
-    try {
-      const signature = await originalWallet.sendTransaction(tx, provider.connection, {
-        commitment: "confirmed",
-      });
-      await provider.connection.confirmTransaction(signature, "confirmed");
-      return signature;
-    } catch (err: any) {
-      if (err.message?.includes("disconnected port") || err.message?.includes("Failed to send")) {
-        throw new Error("Wallet connection interrupted. Please check if transaction was submitted and try again if it wasn't.");
-      }
-      throw err;
-    }
-  }
+   if (hasFullSupport) {
+     try {
+       const signature = await originalWallet.sendTransaction(tx, provider.connection, {
+         commitment: "confirmed",
+       });
+       await provider.connection.confirmTransaction(signature, "confirmed");
+       return signature;
+     } catch (err: any) {
+       if (err.message?.includes("disconnected port") || err.message?.includes("Failed to send")) {
+         throw new Error("Wallet connection interrupted. Please check if transaction was submitted and try again if it wasn't.");
+       }
+       throw err;
+     }
+   }
 
-  if (hasSeparateSign) {
-    try {
-      const signedTx = await originalWallet.signTransaction(tx);
-      const signature = await provider.connection.sendTransaction(signedTx, [], {
-        commitment: "confirmed",
-      });
-      await provider.connection.confirmTransaction(signature, "confirmed");
-      return signature;
-    } catch (err: any) {
-      throw new Error(`Transaction failed: ${err.message || err}`);
-    }
-  }
+   if (hasSeparateSign) {
+     try {
+       const signedTx = await originalWallet.signTransaction(tx);
+       const signature = await provider.connection.sendTransaction(signedTx, [], {
+         commitment: "confirmed",
+       });
+       await provider.connection.confirmTransaction(signature, "confirmed");
+       return signature;
+     } catch (err: any) {
+       throw new Error(`Transaction failed: ${err.message || err}`);
+     }
+   }
 
-  throw new Error("Wallet does not support signTransaction");
-}
+   throw new Error("Wallet does not support signTransaction");
+ }
 
 export async function unstakeWithConnection(
   connection: any,
