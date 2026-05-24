@@ -37,7 +37,7 @@ export function ClaimRewardsForm({
 
     if (adapter) {
       try {
-        if (pool.poolId === null) {
+        if (pool.poolId == null) {
           setError("This pool is missing its on-chain pool ID");
           return;
         }

@@ -75,10 +75,8 @@ export function StakeForm({
 
     if (adapter) {
       try {
-        if (pool.poolId === null) {
-          setError(
-            "This pool is missing its on-chain pool ID. Create the pool first."
-          );
+        if (pool.poolId == null) {
+          setError("This pool is missing its on-chain pool ID");
           return;
         }
         const stakeMint = new PublicKey(pool.stakeMint);
