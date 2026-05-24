@@ -3,6 +3,7 @@
 import { StakingPool, UserPosition } from '@/lib/types';
 import { CountdownTimer } from './countdown-timer';
 import { AnimatedCounter } from './animated-counter';
+import { getRemainingCooldown } from '@/lib/store';
 import Link from 'next/link';
 import { ArrowRight, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -13,7 +14,7 @@ interface PositionCardProps {
 }
 
 export function PositionCard({ position, pool }: PositionCardProps) {
-  const isUnstaking = position.unstakedAt !== null && position.cooldownPeriod > 0;
+  const isUnstaking = position.unstakedAt !== null && getRemainingCooldown(position) > 0;
 
   return (
     <motion.div
@@ -111,7 +112,7 @@ export function PositionCard({ position, pool }: PositionCardProps) {
               Cooldown Period
             </p>
           </div>
-          <CountdownTimer seconds={position.cooldownPeriod} compact />
+          <CountdownTimer seconds={getRemainingCooldown(position)} compact />
         </div>
       )}
 

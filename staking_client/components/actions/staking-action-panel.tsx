@@ -1,6 +1,6 @@
 'use client';
 
-import { useStakingStore } from '@/lib/store';
+import { useStakingStore, getRemainingCooldown } from '@/lib/store';
 import { useStakeMintBalance } from '@/lib/hooks/use-wallet-balance';
 import { StakingPool } from '@/lib/types';
 import { StakeForm } from './stake-form';
@@ -48,7 +48,7 @@ export function StakingActionPanel({ poolId, pool }: StakingActionPanelProps) {
           <TabsTrigger value="claim" disabled={!position || position.rewardsEarned <= 0}>
             Claim
           </TabsTrigger>
-          <TabsTrigger value="withdraw" disabled={!position || position.cooldownPeriod > 0}>
+          <TabsTrigger value="withdraw" disabled={!position || getRemainingCooldown(position) > 0}>
             Withdraw
           </TabsTrigger>
         </TabsList>
@@ -84,14 +84,14 @@ export function StakingActionPanel({ poolId, pool }: StakingActionPanelProps) {
         </TabsContent>
 
         <TabsContent value="withdraw" className="mt-6">
-          {position && position.cooldownPeriod === 0 && position.stakedAmount === 0 ? (
+          {position && getRemainingCooldown(position) === 0 && position.stakedAmount === 0 ? (
             <WithdrawForm pool={pool} />
           ) : (
             <div className="text-center py-8" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {position && position.cooldownPeriod > 0 ? (
+              {position && getRemainingCooldown(position) > 0 ? (
                 <>
                   <p style={{ color: 'var(--text-tertiary)', fontSize: '13px' }}>Cooldown period in progress</p>
-                  <p style={{ fontSize: '12px', color: '#ffc47c' }}>Come back in {position.cooldownPeriod} seconds</p>
+                  <p style={{ fontSize: '12px', color: '#ffc47c' }}>Come back in {getRemainingCooldown(position)} seconds</p>
                 </>
               ) : (
                 <p style={{ color: 'var(--text-tertiary)', fontSize: '13px' }}>No positions to withdraw</p>

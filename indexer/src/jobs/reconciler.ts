@@ -131,6 +131,7 @@ export class ReconcilerJob {
             stakedAmount: bigint;
             rewardAmount: bigint;
             lockUpPeriod: bigint;
+            cooldownDuration: bigint;
             totalShares: bigint;
         }>,
         currentSlot: bigint
@@ -195,6 +196,12 @@ export class ReconcilerJob {
             );
             this.compareField(
                 mismatches,
+                "cooldownDuration",
+                dbPool.cooldownDuration,
+                onChainPool.cooldownDuration
+            );
+            this.compareField(
+                mismatches,
                 "totalShares",
                 dbPool.totalShares,
                 onChainPool.depositCap
@@ -220,6 +227,7 @@ export class ReconcilerJob {
                             stakedAmount: onChainPool.totalStaked,
                             rewardAmount: onChainPool.totalRewardsFunded,
                             lockUpPeriod: onChainPool.lockDuration,
+                            cooldownDuration: onChainPool.cooldownDuration,
                             totalShares: onChainPool.depositCap,
                             lastUpdatedSlot: currentSlot,
                         },
@@ -246,6 +254,11 @@ export class ReconcilerJob {
             userAuthority: string;
             shares: bigint;
             depositAmount: bigint;
+            pendingRewards: bigint;
+            pendingWithdrawal: bigint;
+            unlockTimestamp: bigint;
+            cooldownStart: bigint;
+            availableStake: bigint;
         }>,
         currentSlot: bigint
     ): Promise<number> {
@@ -307,6 +320,32 @@ export class ReconcilerJob {
                 dbPosition.depositAmount,
                 onChainPosition.amount
             );
+            this.compareField(
+                mismatches,
+                "pendingRewards",
+                dbPosition.pendingRewards,
+                onChainPosition.pendingRewards
+            );
+            this.compareField(
+                mismatches,
+                "pendingWithdrawal",
+                dbPosition.pendingWithdrawal,
+                onChainPosition.pendingWithdrawal
+            );
+            this.compareField(
+                mismatches,
+                "unlockTimestamp",
+                dbPosition.unlockTimestamp,
+                onChainPosition.unlockTimestamp
+            );
+            this.compareField(
+                mismatches,
+                "cooldownStart",
+                dbPosition.cooldownStart,
+                onChainPosition.cooldownStart
+            );
+
+            // availableStake is derived, not stored on-chain, so skip direct comparison
 
             if (Object.keys(mismatches).length > 0) {
                 diffCount += await this.recordDiff(
@@ -329,6 +368,10 @@ export class ReconcilerJob {
                             shares: onChainPosition.amount,
                             depositAmount: onChainPosition.amount,
                             depositTime: onChainPosition.depositTimestamp,
+                            pendingRewards: onChainPosition.pendingRewards,
+                            pendingWithdrawal: onChainPosition.pendingWithdrawal,
+                            unlockTimestamp: onChainPosition.unlockTimestamp,
+                            cooldownStart: onChainPosition.cooldownStart,
                             lastUpdatedSlot: currentSlot,
                         },
                     });

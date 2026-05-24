@@ -155,6 +155,7 @@ export class AccountSyncJob {
                             rewardPerShare: pool.rewardPerShare,
                             totalShares: pool.totalShares,
                             lockUpPeriod: pool.lockUpPeriod,
+                            cooldownDuration: pool.cooldownDuration,
                             startTime: pool.startTime,
                             endTime: pool.endTime,
                             createdTxHash,
@@ -174,6 +175,7 @@ export class AccountSyncJob {
                             rewardPerShare: pool.rewardPerShare,
                             totalShares: pool.totalShares,
                             lockUpPeriod: pool.lockUpPeriod,
+                            cooldownDuration: pool.cooldownDuration,
                             startTime: pool.startTime,
                             endTime: pool.endTime,
                             createdTxHash,
@@ -273,6 +275,11 @@ export class AccountSyncJob {
                             depositAmount: position.depositAmount,
                             depositTime: position.depositTime,
                             rewardDebt: position.rewardDebt,
+                            pendingRewards: position.pendingRewards,
+                            pendingWithdrawal: position.pendingWithdrawal,
+                            unlockTimestamp: position.unlockTimestamp,
+                            cooldownStart: position.cooldownStart,
+                            availableStake: position.availableStake,
                             lastUpdatedSlot: BigInt(currentSlot),
                             updatedAt: new Date(),
                         },
@@ -285,6 +292,11 @@ export class AccountSyncJob {
                             depositAmount: position.depositAmount,
                             depositTime: position.depositTime,
                             rewardDebt: position.rewardDebt,
+                            pendingRewards: position.pendingRewards,
+                            pendingWithdrawal: position.pendingWithdrawal,
+                            unlockTimestamp: position.unlockTimestamp,
+                            cooldownStart: position.cooldownStart,
+                            availableStake: position.availableStake,
                             lastUpdatedSlot: BigInt(currentSlot),
                         },
                     });
@@ -478,6 +490,7 @@ export class AccountSyncJob {
                     rewardPerShare: 0n,
                     totalShares: decoded.depositCap,
                     lockUpPeriod: decoded.lockDuration,
+                    cooldownDuration: decoded.cooldownDuration,
                     startTime: decoded.lastUpdateTimestamp,
                     endTime: null,
                 };
@@ -572,6 +585,7 @@ export class AccountSyncJob {
             rewardPerShare: cumulativeRewardPerToken,
             totalShares: depositCap,
             lockUpPeriod: lockDuration,
+            cooldownDuration: cooldownDuration,
             startTime: BigInt(0), // Not in standard Pool struct
             endTime: null,
         };
@@ -619,9 +633,11 @@ export class AccountSyncJob {
         offset += 8;
 
         // unlock_timestamp: i64
+        const unlockTimestamp = buffer.readBigInt64LE(offset);
         offset += 8;
 
         // cooldown_start: i64
+        const cooldownStart = buffer.readBigInt64LE(offset);
         offset += 8;
 
         // bump: u8
@@ -629,6 +645,8 @@ export class AccountSyncJob {
 
         // version: u8
         offset += 1;
+
+        const availableStake = amount >= pendingWithdrawal ? amount - pendingWithdrawal : 0n;
 
         return {
             id: pubkey.toBase58(),
@@ -641,6 +659,9 @@ export class AccountSyncJob {
             rewardDebt: rewardDebt,
             pendingRewards: pendingRewards,
             pendingWithdrawal: pendingWithdrawal,
+            unlockTimestamp: unlockTimestamp,
+            cooldownStart: cooldownStart,
+            availableStake: availableStake,
         };
     }
 

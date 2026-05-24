@@ -51,15 +51,16 @@ model Pool {
   rewardAmount    BigInt   @default(0)
   rewardPerShare  BigInt   @default(0)
   totalShares     BigInt   @default(0)
-  lockUpPeriod    BigInt
-  startTime       BigInt
-  endTime         BigInt?
-  lastUpdatedSlot BigInt
-  createdTxHash  String?  @db.VarChar(88)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  description     String   @default("")
-  name            String   @default("")
+  lockUpPeriod      BigInt
+  cooldownDuration  BigInt   @default(0)
+  startTime         BigInt
+  endTime           BigInt?
+  lastUpdatedSlot   BigInt
+  createdTxHash     String?  @db.VarChar(88)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  description       String   @default("")
+  name              String   @default("")
 
   @@index([authority])
   @@index([lastUpdatedSlot])
@@ -95,12 +96,17 @@ model UserPosition {
   id              String   @id
   pool            String
   userAuthority   String
-  shares          BigInt
-  unlockedShares  BigInt   @default(0)
-  depositAmount   BigInt
-  depositTime     BigInt
-  rewardDebt      BigInt   @default(0)
-  lastUpdatedSlot BigInt
+  shares            BigInt
+  unlockedShares    BigInt   @default(0)
+  depositAmount     BigInt
+  depositTime       BigInt
+  rewardDebt        BigInt   @default(0)
+  pendingRewards    BigInt   @default(0)
+  pendingWithdrawal BigInt   @default(0)
+  unlockTimestamp   BigInt   @default(0)
+  cooldownStart     BigInt   @default(0)
+  availableStake    BigInt   @default(0)
+  lastUpdatedSlot   BigInt
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

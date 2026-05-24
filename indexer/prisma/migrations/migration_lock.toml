@@ -4,3 +4,6 @@ provider = "postgresql"
 
 [[migrations]]
 name = "20260517161318_add_name_description_stakers_to_stakingpool"
+
+[[migrations]]
+name = "20260524000000_add_cooldown_and_available_stake"

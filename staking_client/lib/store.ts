@@ -3,6 +3,19 @@
 import { create } from "zustand";
 import { StakingPool, UserPosition, StakingAction, ActionState } from "./types";
 
+// Total unstake cooldown duration in seconds. Adjust this value as needed.
+const UNSTAKE_COOLDOWN_SECONDS = 0;
+
+/**
+ * Compute the remaining cooldown seconds for a position.
+ * Returns 0 if there is no active cooldown or if the cooldown has elapsed.
+ */
+export function getRemainingCooldown(position: UserPosition | null | undefined): number {
+  if (!position || !position.unstakedAt || position.cooldownPeriod <= 0) return 0;
+  const elapsed = Math.floor((Date.now() - position.unstakedAt) / 1000);
+  return Math.max(0, position.cooldownPeriod - elapsed);
+}
+
 type PoolApiRecord = {
   id: string;
   poolId: number | null;
@@ -134,21 +147,21 @@ export const useStakingStore = create<StakingStore>()((set, get) => ({
     };
   },
 
-   fetchPools: async () => {
-     set({ isLoading: true });
-     try {
-       const response = await fetch("/api/stakingpools");
-       const data = await response.json();
-       if (data.pools) {
-         const pools: StakingPool[] = data.pools.map(mapPoolFromApi);
-         console.log("Fetched pools:", pools);
-         set({ pools, isLoading: false });
-       }
-     } catch (error) {
-       console.error("Failed to fetch pools:", error);
-       set({ isLoading: false });
-     }
-   },
+  fetchPools: async () => {
+    set({ isLoading: true });
+    try {
+      const response = await fetch("/api/stakingpools");
+      const data = await response.json();
+      if (data.pools) {
+        const pools: StakingPool[] = data.pools.map(mapPoolFromApi);
+        console.log("Fetched pools:", pools);
+        set({ pools, isLoading: false });
+      }
+    } catch (error) {
+      console.error("Failed to fetch pools:", error);
+      set({ isLoading: false });
+    }
+  },
   fetchPoolById: async (poolId: string) => {
     set({ isLoading: true });
     try {
@@ -166,8 +179,8 @@ export const useStakingStore = create<StakingStore>()((set, get) => ({
         set((state) => ({
           pools: state.pools.some((current) => current.id === pool.id)
             ? state.pools.map((current) =>
-                current.id === pool.id ? pool : current,
-              )
+              current.id === pool.id ? pool : current,
+            )
             : [...state.pools, pool],
           isLoading: false,
         }));
@@ -199,11 +212,11 @@ export const useStakingStore = create<StakingStore>()((set, get) => ({
       if (data.positions) {
         const mappedPositions = data.positions.map((pos: any) => {
           const pool = get().pools.find((p) => p.id === pos.pool);
-          
+
           const shares = Number(pos.shares);
           const rewardDebt = Number(pos.rewardDebt);
           const rewardPerShare = pool?.rewardPerShare ? Number(pool.rewardPerShare) : 0;
-          
+
           const pendingRewardsLamports = Math.max(0, (shares * rewardPerShare) / 1e12 - rewardDebt);
           const rewardsEarned = pendingRewardsLamports / 1e9;
 
@@ -227,7 +240,7 @@ export const useStakingStore = create<StakingStore>()((set, get) => ({
   initializeStore: () => {
     get().fetchPools();
   },
-  simulateRewardAccrual: () => {},
+  simulateRewardAccrual: () => { },
 
   stakeTokens: async (poolId: string, amount: number, txHash?: string) => {
     set({
@@ -249,10 +262,10 @@ export const useStakingStore = create<StakingStore>()((set, get) => ({
           userPositions: state.userPositions.map((pos) =>
             pos.poolId === poolId
               ? {
-                  ...pos,
-                  stakedAmount: pos.stakedAmount + amount,
-                  stakedAt: Date.now(),
-                }
+                ...pos,
+                stakedAmount: pos.stakedAmount + amount,
+                stakedAt: Date.now(),
+              }
               : pos,
           ),
           userWalletBalance: state.userWalletBalance - amount,
@@ -341,11 +354,11 @@ export const useStakingStore = create<StakingStore>()((set, get) => ({
         userPositions: state.userPositions.map((pos) =>
           pos.poolId === poolId
             ? {
-                ...pos,
-                stakedAmount: Math.max(0, pos.stakedAmount - amount),
-                unstakedAt: Date.now(),
-                cooldownPeriod: 172800,
-              }
+              ...pos,
+              stakedAmount: Math.max(0, pos.stakedAmount - amount),
+              unstakedAt: Date.now(),
+              cooldownPeriod: UNSTAKE_COOLDOWN_SECONDS,
+            }
             : pos,
         ),
         recentActions: [
@@ -398,10 +411,10 @@ export const useStakingStore = create<StakingStore>()((set, get) => ({
         userPositions: state.userPositions.map((pos) =>
           pos.poolId === poolId
             ? {
-                ...pos,
-                rewardsEarned: 0,
-                claimedRewards: pos.claimedRewards + position.rewardsEarned,
-              }
+              ...pos,
+              rewardsEarned: 0,
+              claimedRewards: pos.claimedRewards + position.rewardsEarned,
+            }
             : pos,
         ),
         userWalletBalance: state.userWalletBalance + position.rewardsEarned,
@@ -439,7 +452,7 @@ export const useStakingStore = create<StakingStore>()((set, get) => ({
 
   withdrawUnstaked: async (poolId: string, txHash?: string) => {
     const position = get().getUserPosition(poolId);
-    if (!position || position.cooldownPeriod > 0) {
+    if (!position || getRemainingCooldown(position) > 0) {
       set((state) => ({
         actionState: {
           ...state.actionState,
@@ -510,5 +523,5 @@ export const useStakingStore = create<StakingStore>()((set, get) => ({
         success: false,
       },
     }),
-  updateRewardSimulation: () => {},
+  updateRewardSimulation: () => { },
 }));
