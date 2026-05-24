@@ -3,15 +3,18 @@
 import { create } from "zustand";
 import { StakingPool, UserPosition, StakingAction, ActionState } from "./types";
 
-// Total unstake cooldown duration in seconds. Adjust this value as needed.
-const UNSTAKE_COOLDOWN_SECONDS = 0;
-
 /**
  * Compute the remaining cooldown seconds for a position.
+ * Uses unlockTimestamp from DB (preferred), or falls back to unstakedAt + cooldownPeriod.
  * Returns 0 if there is no active cooldown or if the cooldown has elapsed.
  */
 export function getRemainingCooldown(position: UserPosition | null | undefined): number {
-  if (!position || !position.unstakedAt || position.cooldownPeriod <= 0) return 0;
+  if (!position) return 0;
+  if (position.unlockTimestamp) {
+    const remaining = position.unlockTimestamp - Math.floor(Date.now() / 1000);
+    return Math.max(0, remaining);
+  }
+  if (!position.unstakedAt || position.cooldownPeriod <= 0) return 0;
   const elapsed = Math.floor((Date.now() - position.unstakedAt) / 1000);
   return Math.max(0, position.cooldownPeriod - elapsed);
 }
@@ -31,6 +34,7 @@ type PoolApiRecord = {
   totalStakers?: number | string;
   status?: string;
   rewardPerShare?: string;
+  cooldownDuration?: string;
 };
 
 function numberFromApi(value: unknown, fallback = 0) {
@@ -67,6 +71,7 @@ function mapPoolFromApi(pool: PoolApiRecord): StakingPool {
     rewardToken: pool.rewardMint,
     status,
     rewardPerShare: pool.rewardPerShare,
+    cooldownDuration: pool.cooldownDuration ? numberFromApi(pool.cooldownDuration) : undefined,
   };
 }
 
@@ -220,14 +225,23 @@ export const useStakingStore = create<StakingStore>()((set, get) => ({
           const pendingRewardsLamports = Math.max(0, (shares * rewardPerShare) / 1e12 - rewardDebt);
           const rewardsEarned = pendingRewardsLamports / 1e9;
 
+          const cooldownStart = pos.cooldownStart ? Number(pos.cooldownStart) : null;
+          const unlockTimestamp = pos.unlockTimestamp ? Number(pos.unlockTimestamp) : null;
+          const pendingWithdrawal = pos.pendingWithdrawal ? Number(pos.pendingWithdrawal) : 0;
+          const poolCooldown = pool?.cooldownDuration ? Number(pool.cooldownDuration) : 0;
+          const hasActiveCooldown = cooldownStart && cooldownStart > 0;
+
           return {
             poolId: pos.pool,
             stakedAmount: shares / 1e9,
             rewardsEarned,
             claimedRewards: 0,
             stakedAt: Number(pos.depositTime) * 1000,
-            unstakedAt: null,
-            cooldownPeriod: 0,
+            unstakedAt: hasActiveCooldown ? cooldownStart * 1000 : null,
+            cooldownPeriod: hasActiveCooldown ? poolCooldown : 0,
+            cooldownStart,
+            unlockTimestamp,
+            pendingWithdrawal: pendingWithdrawal / 1e9,
           };
         });
 
@@ -302,6 +316,9 @@ export const useStakingStore = create<StakingStore>()((set, get) => ({
               stakedAt: Date.now(),
               unstakedAt: null,
               cooldownPeriod: 0,
+              cooldownStart: null,
+              unlockTimestamp: null,
+              pendingWithdrawal: 0,
             },
           ],
           userWalletBalance: state.userWalletBalance - amount,
@@ -350,6 +367,9 @@ export const useStakingStore = create<StakingStore>()((set, get) => ({
       },
     });
     try {
+      const pool = get().getPoolById(poolId);
+      const cooldownDuration = pool?.cooldownDuration ?? 0;
+      const now = Math.floor(Date.now() / 1000);
       set((state) => ({
         userPositions: state.userPositions.map((pos) =>
           pos.poolId === poolId
@@ -357,7 +377,10 @@ export const useStakingStore = create<StakingStore>()((set, get) => ({
               ...pos,
               stakedAmount: Math.max(0, pos.stakedAmount - amount),
               unstakedAt: Date.now(),
-              cooldownPeriod: UNSTAKE_COOLDOWN_SECONDS,
+              cooldownPeriod: cooldownDuration,
+              cooldownStart: now,
+              unlockTimestamp: now + cooldownDuration,
+              pendingWithdrawal: (pos.pendingWithdrawal ?? 0) + amount,
             }
             : pos,
         ),

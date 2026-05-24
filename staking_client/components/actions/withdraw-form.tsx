@@ -3,15 +3,16 @@
 import { useState } from "react";
 import { useStakingStore } from "@/lib/store";
 import { useSolanaAdapter } from "@/lib/hooks/use-solana-adapter";
-import { StakingPool } from "@/lib/types";
+import { StakingPool, UserPosition } from "@/lib/types";
 import { AlertCircle, Check, Loader2, Info } from "lucide-react";
 import { PublicKey } from "@solana/web3.js";
 
 interface WithdrawFormProps {
   pool: StakingPool;
+  position: UserPosition;
 }
 
-export function WithdrawForm({ pool }: WithdrawFormProps) {
+export function WithdrawForm({ pool, position }: WithdrawFormProps) {
   const { withdrawUnstaked, actionState, resetActionState } = useStakingStore();
   const adapter = useSolanaAdapter();
   const [error, setError] = useState("");
@@ -79,6 +80,10 @@ export function WithdrawForm({ pool }: WithdrawFormProps) {
           <div className="flex justify-between text-sm">
             <span className="text-slate-400">Pool</span>
             <span className="text-white font-semibold">{pool.name}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-slate-400">Withdrawable Amount</span>
+            <span className="text-white font-semibold">{position.pendingWithdrawal.toFixed(4)} SOL</span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-slate-400">Status</span>

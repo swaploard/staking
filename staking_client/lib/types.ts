@@ -14,6 +14,7 @@ export interface StakingPool {
   rewardToken: string; // Token address
   status: 'active' | 'inactive' | 'maintenance';
   rewardPerShare?: string;
+  cooldownDuration?: number; // Cooldown period in seconds
 }
 
 export interface UserPosition {
@@ -24,6 +25,9 @@ export interface UserPosition {
   stakedAt: number; // Timestamp
   unstakedAt: number | null; // Timestamp when unstaking started
   cooldownPeriod: number; // Remaining cooldown in seconds
+  cooldownStart: number | null; // DB: when cooldown started (seconds epoch)
+  unlockTimestamp: number | null; // DB: when cooldown ends (seconds epoch)
+  pendingWithdrawal: number; // DB: amount pending withdrawal
 }
 
 export interface StakingAction {

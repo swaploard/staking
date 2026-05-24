@@ -116,6 +116,7 @@ export async function GET(
                     rewardPerShare: true,
                     totalShares: true,
                     lockUpPeriod: true,
+                    cooldownDuration: true,
                     startTime: true,
                     endTime: true,
                     lastUpdatedSlot: true,
@@ -148,6 +149,7 @@ export async function GET(
                     rewardPerShare: true,
                     totalShares: true,
                     lockUpPeriod: true,
+                    cooldownDuration: true,
                     startTime: true,
                     endTime: true,
                     lastUpdatedSlot: true,
@@ -270,6 +272,7 @@ export async function GET(
             rewardPerShare: pool.rewardPerShare.toString(),
             totalShares: pool.totalShares.toString(),
             lockUpPeriod: pool.lockUpPeriod.toString(),
+            cooldownDuration: pool.cooldownDuration.toString(),
             startTime: pool.startTime.toString(),
             lastUpdatedSlot: pool.lastUpdatedSlot.toString(),
         }

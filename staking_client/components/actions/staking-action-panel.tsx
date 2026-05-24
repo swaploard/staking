@@ -84,8 +84,8 @@ export function StakingActionPanel({ poolId, pool }: StakingActionPanelProps) {
         </TabsContent>
 
         <TabsContent value="withdraw" className="mt-6">
-          {position && getRemainingCooldown(position) === 0 && position.stakedAmount === 0 ? (
-            <WithdrawForm pool={pool} />
+          {position && getRemainingCooldown(position) === 0 && (position.pendingWithdrawal ?? 0) > 0 ? (
+            <WithdrawForm pool={pool} position={position} />
           ) : (
             <div className="text-center py-8" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {position && getRemainingCooldown(position) > 0 ? (

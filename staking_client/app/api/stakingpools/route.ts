@@ -15,6 +15,7 @@ type PoolRow = {
     rewardPerShare: bigint
     totalShares: bigint
     lockUpPeriod: bigint
+    cooldownDuration: bigint
     startTime: bigint
     endTime: bigint | null
     lastUpdatedSlot: bigint
@@ -231,6 +232,7 @@ async function serializePools(poolRows: PoolRow[]) {
             rewardPerShare: pool.rewardPerShare.toString(),
             totalShares: pool.totalShares.toString(),
             lockUpPeriod: pool.lockUpPeriod.toString(),
+            cooldownDuration: pool.cooldownDuration.toString(),
             startTime: pool.startTime.toString(),
             endTime: pool.endTime?.toString(),
             lastUpdatedSlot: pool.lastUpdatedSlot.toString(),
@@ -278,6 +280,7 @@ export async function GET() {
                 rewardPerShare: true,
                 totalShares: true,
                 lockUpPeriod: true,
+                cooldownDuration: true,
                 startTime: true,
                 endTime: true,
                 lastUpdatedSlot: true,
@@ -341,6 +344,7 @@ export async function POST(request: NextRequest) {
                 rewardPerShare: true,
                 totalShares: true,
                 lockUpPeriod: true,
+                cooldownDuration: true,
                 startTime: true,
                 endTime: true,
                 lastUpdatedSlot: true,

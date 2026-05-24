@@ -81,6 +81,11 @@ export async function GET(
                 depositAmount: true,
                 depositTime: true,
                 rewardDebt: true,
+                pendingWithdrawal: true,
+                unlockTimestamp: true,
+                cooldownStart: true,
+                availableStake: true,
+                pendingRewards: true,
                 lastUpdatedSlot: true,
                 createdAt: true,
                 updatedAt: true,
@@ -106,6 +111,11 @@ export async function GET(
             depositAmount: position.depositAmount.toString(),
             depositTime: position.depositTime.toString(),
             rewardDebt: position.rewardDebt.toString(),
+            pendingWithdrawal: position.pendingWithdrawal.toString(),
+            unlockTimestamp: position.unlockTimestamp.toString(),
+            cooldownStart: position.cooldownStart.toString(),
+            availableStake: position.availableStake.toString(),
+            pendingRewards: position.pendingRewards.toString(),
             lastUpdatedSlot: position.lastUpdatedSlot.toString(),
         }))
 

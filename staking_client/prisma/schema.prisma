@@ -69,6 +69,7 @@ model Pool {
   poolId          Int?
   rewardMint      String   @default("")
   aprBps          BigInt   @default(0)
+  cooldownDuration BigInt @default(0)
 
   @@index([authority])
   @@index([lastUpdatedSlot])
@@ -175,6 +176,11 @@ model UserPosition {
   depositAmount   BigInt
   depositTime     BigInt
   rewardDebt      BigInt   @default(0)
+  pendingRewards    BigInt   @default(0)
+  pendingWithdrawal BigInt   @default(0)
+  unlockTimestamp   BigInt   @default(0)
+  cooldownStart     BigInt   @default(0)
+  availableStake    BigInt   @default(0)
   lastUpdatedSlot BigInt
   createdAt       DateTime @default(now())
   updatedAt       DateTime
