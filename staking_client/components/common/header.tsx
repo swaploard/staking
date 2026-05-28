@@ -6,7 +6,7 @@ import { Wallet } from 'lucide-react';
 import { LAMPORTS_PER_SOL } from '@solana/web3.js';
 
 import { useWallet, useConnection } from "@solana/wallet-adapter-react";
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import WalletButton from '@/components/wallet/wallet-button';
 import { useEffect, useState } from 'react';
 
 export function Header() {
@@ -142,7 +142,7 @@ export function Header() {
           ) : (
             <div className="wallet-header-button flex items-center gap-2">
               <Wallet style={{ width: '16px', height: '16px', color: 'var(--text-tertiary)' }} />
-              <WalletMultiButton />
+              <WalletButton />
             </div>
           )}
         </div>

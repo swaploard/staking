@@ -11,7 +11,6 @@ import {
 } from "@solana/wallet-adapter-react-ui";
 
 import {
-    PhantomWalletAdapter,
     SolflareWalletAdapter
 } from "@solana/wallet-adapter-wallets";
 
@@ -29,7 +28,6 @@ export default function SolanaWalletProvider({
 
     const wallets = useMemo(
         () => [
-            new PhantomWalletAdapter(),
             new SolflareWalletAdapter(),
         ],
         []

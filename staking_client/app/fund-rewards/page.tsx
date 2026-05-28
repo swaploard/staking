@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
 import { useWallet, useConnection, useAnchorWallet } from '@solana/wallet-adapter-react'
-import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
+import WalletButton from '@/components/wallet/wallet-button'
 import { PublicKey } from '@solana/web3.js'
 import { getProvider } from '@/lib/anchor'
 import { fundRewards, derivePoolPdas } from '@/lib/instructions/fund-rewards'
@@ -183,7 +183,7 @@ export default function FundRewards() {
                     <div className="flex items-center gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
                         <AlertCircle size={16} className="shrink-0" />
                         <span>Connect your wallet to fund rewards</span>
-                        <WalletMultiButton className="ml-auto" />
+                        <WalletButton className="ml-auto" />
                     </div>
                 )}
 
