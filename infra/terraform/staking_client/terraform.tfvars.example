@@ -1,0 +1,17 @@
+aws_region       = "us-east-1"
+app_name         = "staking-client"
+environment_name = "prod"
+
+environment = {
+  NODE_ENV             = "production"
+  NEXT_PUBLIC_RPC_URL = "https://api.devnet.solana.com"
+}
+
+# Keep secrets out of Terraform variables when possible. Prefer an existing
+# Secrets Manager secret or SSM SecureString parameter for DATABASE_URL.
+# secrets = {
+#   DATABASE_URL = "arn:aws:secretsmanager:us-east-1:123456789012:secret:staking-client/database-url-AbCdEf"
+# }
+
+# Optional: set this after creating an ACM certificate in the same AWS region.
+# certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/00000000-0000-0000-0000-000000000000"
