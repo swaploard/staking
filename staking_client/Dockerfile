@@ -3,8 +3,9 @@ FROM node:20-alpine AS deps
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
-RUN npm ci
+RUN corepack enable && corepack prepare pnpm@latest --activate
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 
 # ---------- builder ----------
 FROM node:20-alpine AS builder
@@ -16,7 +17,7 @@ COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN npx prisma generate
+RUN npm exec prisma generate
 RUN npm run build
 
 # ---------- runner ----------
