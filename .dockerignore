@@ -5,10 +5,15 @@
 !package.json
 !package-lock.json
 !target
-!target/idl
 !target/idl/**
-!target/types
 !target/types/**
+
+# Exclude large Rust/Anchor build artifacts (only need idl & types)
+target/.rustc_info.json
+target/debug/**
+target/release/**
+target/sbpf-solana-solana/**
+target/deploy/**
 
 staking_client/.next
 staking_client/node_modules

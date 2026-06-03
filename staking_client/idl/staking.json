@@ -1,0 +1,2203 @@
+{
+  "address": "8iVfFoXD5THP7XJKwSDGEyK72Basc983p8fDpzUK9brN",
+  "metadata": {
+    "name": "staking",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "claim_rewards",
+      "docs": [
+        "Claim all accumulated rewards."
+      ],
+      "discriminator": [
+        4,
+        144,
+        132,
+        71,
+        116,
+        23,
+        151,
+        80
+      ],
+      "accounts": [
+        {
+          "name": "user",
+          "signer": true
+        },
+        {
+          "name": "pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool.pool_id",
+                "account": "Pool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user_position",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "user"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user_reward_ata",
+          "docs": [
+            "User's reward token account (destination)"
+          ],
+          "writable": true
+        },
+        {
+          "name": "reward_vault",
+          "docs": [
+            "Pool's reward vault (source, authority = pool PDA)"
+          ],
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "create_pool",
+      "docs": [
+        "Create a new staking pool. Only admin can call this."
+      ],
+      "discriminator": [
+        233,
+        146,
+        209,
+        142,
+        207,
+        104,
+        64,
+        188
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "docs": [
+            "Admin authority — must match global_config.admin_authority"
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "global_config",
+          "docs": [
+            "GlobalConfig must already be initialized"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  108,
+                  111,
+                  98,
+                  97,
+                  108,
+                  95,
+                  118,
+                  50
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool",
+          "docs": [
+            "The new pool account"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "pool_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "stake_mint",
+          "docs": [
+            "Mint of the token users will stake"
+          ]
+        },
+        {
+          "name": "reward_mint",
+          "docs": [
+            "Mint of the token distributed as rewards"
+          ]
+        },
+        {
+          "name": "stake_vault",
+          "docs": [
+            "Vault to hold staked tokens, authority = pool PDA"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  97,
+                  107,
+                  101,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "reward_vault",
+          "docs": [
+            "Vault to hold reward tokens, authority = pool PDA"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  119,
+                  97,
+                  114,
+                  100,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "pool_id",
+          "type": "u64"
+        },
+        {
+          "name": "apr_bps",
+          "type": "u64"
+        },
+        {
+          "name": "lock_duration",
+          "type": "i64"
+        },
+        {
+          "name": "cooldown_duration",
+          "type": "i64"
+        },
+        {
+          "name": "deposit_cap",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "emergency_withdraw",
+      "docs": [
+        "Emergency withdraw: return all tokens, forfeit all rewards."
+      ],
+      "discriminator": [
+        239,
+        45,
+        203,
+        64,
+        150,
+        73,
+        218,
+        92
+      ],
+      "accounts": [
+        {
+          "name": "user",
+          "signer": true
+        },
+        {
+          "name": "pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool.pool_id",
+                "account": "Pool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user_position",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "user"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user_stake_ata",
+          "docs": [
+            "User's stake token account (destination)"
+          ],
+          "writable": true
+        },
+        {
+          "name": "stake_vault",
+          "docs": [
+            "Pool's stake vault (source, authority = pool PDA)"
+          ],
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "fund_rewards",
+      "docs": [
+        "Fund a pool with reward tokens and set the emission rate."
+      ],
+      "discriminator": [
+        114,
+        64,
+        163,
+        112,
+        175,
+        167,
+        19,
+        121
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "docs": [
+            "Admin authority"
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "global_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  108,
+                  111,
+                  98,
+                  97,
+                  108,
+                  95,
+                  118,
+                  50
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool.pool_id",
+                "account": "Pool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "admin_reward_ata",
+          "docs": [
+            "Admin's reward token account (source)"
+          ],
+          "writable": true
+        },
+        {
+          "name": "reward_vault",
+          "docs": [
+            "Pool's reward vault (destination, authority = pool PDA)"
+          ],
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        },
+        {
+          "name": "duration_seconds",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "initialize_global",
+      "docs": [
+        "Initialize the global config singleton. Must be called once before",
+        "any pools can be created."
+      ],
+      "discriminator": [
+        47,
+        225,
+        15,
+        112,
+        86,
+        51,
+        190,
+        231
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "docs": [
+            "The deployer / initial admin who pays for account creation"
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "global_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  108,
+                  111,
+                  98,
+                  97,
+                  108,
+                  95,
+                  118,
+                  50
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "pause_authority",
+          "type": "pubkey"
+        },
+        {
+          "name": "treasury",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "pause_pool",
+      "docs": [
+        "Pause a pool. Admin or pause authority can call this."
+      ],
+      "discriminator": [
+        160,
+        15,
+        12,
+        189,
+        160,
+        0,
+        243,
+        245
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "global_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  108,
+                  111,
+                  98,
+                  97,
+                  108,
+                  95,
+                  118,
+                  50
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool.pool_id",
+                "account": "Pool"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "request_unstake",
+      "docs": [
+        "Request to unstake tokens. Starts cooldown period.",
+        "Lock duration must have passed since deposit."
+      ],
+      "discriminator": [
+        44,
+        154,
+        110,
+        253,
+        160,
+        202,
+        54,
+        34
+      ],
+      "accounts": [
+        {
+          "name": "user",
+          "signer": true
+        },
+        {
+          "name": "pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool.pool_id",
+                "account": "Pool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user_position",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "user"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "stake",
+      "docs": [
+        "Stake tokens into a pool. Creates UserPosition on first stake."
+      ],
+      "discriminator": [
+        206,
+        176,
+        202,
+        18,
+        200,
+        209,
+        179,
+        108
+      ],
+      "accounts": [
+        {
+          "name": "user",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool.pool_id",
+                "account": "Pool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user_position",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "user"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user_stake_ata",
+          "docs": [
+            "User's stake token account (source)"
+          ],
+          "writable": true
+        },
+        {
+          "name": "stake_vault",
+          "docs": [
+            "Pool's stake vault (destination, authority = pool PDA)"
+          ],
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "unpause_pool",
+      "docs": [
+        "Unpause a pool. Admin or pause authority can call this."
+      ],
+      "discriminator": [
+        241,
+        148,
+        129,
+        243,
+        222,
+        125,
+        125,
+        160
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "global_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  108,
+                  111,
+                  98,
+                  97,
+                  108,
+                  95,
+                  118,
+                  50
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool.pool_id",
+                "account": "Pool"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "update_pool_params",
+      "docs": [
+        "Update pool parameters. Only admin can call this."
+      ],
+      "discriminator": [
+        231,
+        113,
+        152,
+        162,
+        225,
+        80,
+        237,
+        116
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "global_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  108,
+                  111,
+                  98,
+                  97,
+                  108,
+                  95,
+                  118,
+                  50
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool.pool_id",
+                "account": "Pool"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "apr_bps",
+          "type": {
+            "option": "u64"
+          }
+        },
+        {
+          "name": "lock_duration",
+          "type": {
+            "option": "i64"
+          }
+        },
+        {
+          "name": "cooldown_duration",
+          "type": {
+            "option": "i64"
+          }
+        },
+        {
+          "name": "deposit_cap",
+          "type": {
+            "option": "u64"
+          }
+        }
+      ]
+    },
+    {
+      "name": "withdraw",
+      "docs": [
+        "Withdraw unstaked tokens after cooldown has completed."
+      ],
+      "discriminator": [
+        183,
+        18,
+        70,
+        156,
+        148,
+        109,
+        161,
+        34
+      ],
+      "accounts": [
+        {
+          "name": "user",
+          "signer": true
+        },
+        {
+          "name": "pool",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool.pool_id",
+                "account": "Pool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user_position",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "user"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user_stake_ata",
+          "docs": [
+            "User's stake token account (destination)"
+          ],
+          "writable": true
+        },
+        {
+          "name": "stake_vault",
+          "docs": [
+            "Pool's stake vault (source, authority = pool PDA)"
+          ],
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
+    }
+  ],
+  "accounts": [
+    {
+      "name": "GlobalConfig",
+      "discriminator": [
+        149,
+        8,
+        156,
+        202,
+        160,
+        252,
+        176,
+        217
+      ]
+    },
+    {
+      "name": "Pool",
+      "discriminator": [
+        241,
+        154,
+        109,
+        4,
+        17,
+        177,
+        109,
+        188
+      ]
+    },
+    {
+      "name": "UserPosition",
+      "discriminator": [
+        251,
+        248,
+        209,
+        245,
+        83,
+        234,
+        17,
+        27
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "EmergencyWithdrawn",
+      "discriminator": [
+        116,
+        226,
+        36,
+        3,
+        37,
+        92,
+        138,
+        76
+      ]
+    },
+    {
+      "name": "GlobalInitialized",
+      "discriminator": [
+        142,
+        186,
+        188,
+        168,
+        64,
+        228,
+        8,
+        20
+      ]
+    },
+    {
+      "name": "PoolCreated",
+      "discriminator": [
+        202,
+        44,
+        41,
+        88,
+        104,
+        220,
+        157,
+        82
+      ]
+    },
+    {
+      "name": "PoolParamsUpdated",
+      "discriminator": [
+        84,
+        184,
+        28,
+        117,
+        39,
+        64,
+        87,
+        132
+      ]
+    },
+    {
+      "name": "PoolPauseToggled",
+      "discriminator": [
+        190,
+        233,
+        13,
+        162,
+        239,
+        176,
+        159,
+        109
+      ]
+    },
+    {
+      "name": "RewardsClaimed",
+      "discriminator": [
+        75,
+        98,
+        88,
+        18,
+        219,
+        112,
+        88,
+        121
+      ]
+    },
+    {
+      "name": "RewardsFunded",
+      "discriminator": [
+        84,
+        233,
+        245,
+        203,
+        228,
+        147,
+        165,
+        92
+      ]
+    },
+    {
+      "name": "Staked",
+      "discriminator": [
+        11,
+        146,
+        45,
+        205,
+        230,
+        58,
+        213,
+        240
+      ]
+    },
+    {
+      "name": "UnstakeRequested",
+      "discriminator": [
+        21,
+        253,
+        177,
+        85,
+        129,
+        206,
+        42,
+        152
+      ]
+    },
+    {
+      "name": "Withdrawn",
+      "discriminator": [
+        20,
+        89,
+        223,
+        198,
+        194,
+        124,
+        219,
+        13
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "InvalidApr",
+      "msg": "Invalid APR: must be <= 10_000 bps"
+    },
+    {
+      "code": 6001,
+      "name": "InvalidCooldown",
+      "msg": "Invalid cooldown duration: must be > 0"
+    },
+    {
+      "code": 6002,
+      "name": "InvalidLock",
+      "msg": "Invalid lock duration: must be >= 0"
+    },
+    {
+      "code": 6003,
+      "name": "ZeroAmount",
+      "msg": "Amount must be greater than zero"
+    },
+    {
+      "code": 6004,
+      "name": "Unauthorized",
+      "msg": "Unauthorized: signer is not the required authority"
+    },
+    {
+      "code": 6005,
+      "name": "AlreadyInitialized",
+      "msg": "Account already initialized"
+    },
+    {
+      "code": 6006,
+      "name": "PoolPaused",
+      "msg": "Pool is paused"
+    },
+    {
+      "code": 6007,
+      "name": "DepositCapExceeded",
+      "msg": "Deposit cap exceeded"
+    },
+    {
+      "code": 6008,
+      "name": "InsufficientStake",
+      "msg": "Insufficient staked balance"
+    },
+    {
+      "code": 6009,
+      "name": "LockNotExpired",
+      "msg": "Lock period has not expired"
+    },
+    {
+      "code": 6010,
+      "name": "CooldownNotComplete",
+      "msg": "Cooldown period has not completed"
+    },
+    {
+      "code": 6011,
+      "name": "NoCooldownActive",
+      "msg": "No active cooldown to withdraw"
+    },
+    {
+      "code": 6012,
+      "name": "NoPendingWithdrawal",
+      "msg": "No pending withdrawal"
+    },
+    {
+      "code": 6013,
+      "name": "InsufficientRewards",
+      "msg": "Insufficient rewards in vault"
+    },
+    {
+      "code": 6014,
+      "name": "NoPendingRewards",
+      "msg": "No pending rewards to claim"
+    },
+    {
+      "code": 6015,
+      "name": "MathOverflow",
+      "msg": "Math overflow"
+    },
+    {
+      "code": 6016,
+      "name": "InvalidTimestamp",
+      "msg": "Invalid timestamp: clock moved backwards"
+    }
+  ],
+  "types": [
+    {
+      "name": "EmergencyWithdrawn",
+      "docs": [
+        "Emitted when a user performs an emergency withdrawal.",
+        "",
+        "This typically returns stake and any pending withdrawal immediately, bypassing normal cooldowns",
+        "(subject to program rules)."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pool",
+            "docs": [
+              "Pool PDA address."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "pool_id",
+            "docs": [
+              "Pool identifier used in PDA seeds / UI routing."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "user",
+            "docs": [
+              "User wallet that emergency-withdrew."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "returned_amount",
+            "docs": [
+              "Total stake + pending withdrawal returned to the user (delta)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "user_amount_after",
+            "docs": [
+              "User active stake balance after the emergency withdrawal."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "pending_withdrawal_after",
+            "docs": [
+              "User pending withdrawal balance after the emergency withdrawal."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "pool_total_staked_after",
+            "docs": [
+              "Pool total staked after the emergency withdrawal."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "docs": [
+              "Unix timestamp recorded by the instruction."
+            ],
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "GlobalConfig",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admin_authority",
+            "docs": [
+              "The admin who can create pools, fund rewards, update params"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "pause_authority",
+            "docs": [
+              "Authority that can pause/unpause pools (can be same as admin)"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "treasury",
+            "docs": [
+              "Treasury wallet for protocol fees (reserved for future use)"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "PDA bump seed"
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "version",
+            "docs": [
+              "Schema version for migration safety"
+            ],
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "GlobalInitialized",
+      "docs": [
+        "Emitted once when the global program state is initialized."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admin_authority",
+            "docs": [
+              "Program admin authority after initialization."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "pause_authority",
+            "docs": [
+              "Authority allowed to pause/unpause pools after initialization."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "treasury",
+            "docs": [
+              "Treasury account that receives protocol fees (if applicable)."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "timestamp",
+            "docs": [
+              "Unix timestamp recorded by the instruction."
+            ],
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Pool",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pool_id",
+            "docs": [
+              "Unique numeric identifier for this pool"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "stake_mint",
+            "docs": [
+              "Mint of the token users stake"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "reward_mint",
+            "docs": [
+              "Mint of the token distributed as rewards"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "stake_vault",
+            "docs": [
+              "Vault holding staked tokens (authority = pool PDA)"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "reward_vault",
+            "docs": [
+              "Vault holding reward tokens (authority = pool PDA)"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "apr_bps",
+            "docs": [
+              "Annual percentage rate in basis points — UI metadata only,",
+              "NOT used in core reward math. Core math uses reward_rate_per_second."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "lock_duration",
+            "docs": [
+              "Minimum time (seconds) user must remain staked before requesting unstake"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "cooldown_duration",
+            "docs": [
+              "Time (seconds) user must wait after request_unstake before withdraw"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "deposit_cap",
+            "docs": [
+              "Maximum total tokens that can be staked in this pool (0 = no cap)"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "paused",
+            "docs": [
+              "Whether the pool is paused (blocks stake/claim/unstake)"
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "total_staked",
+            "docs": [
+              "Total tokens currently staked in this pool"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "acc_reward_per_share",
+            "docs": [
+              "Accumulated reward per share, scaled by PRECISION (1e12)"
+            ],
+            "type": "u128"
+          },
+          {
+            "name": "last_update_timestamp",
+            "docs": [
+              "Last time the accumulator was updated"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "reward_rate_per_second",
+            "docs": [
+              "Fixed emission rate: tokens of reward per second",
+              "Set by fund_rewards: total_rewards_funded / emission_duration"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "total_rewards_funded",
+            "docs": [
+              "Cumulative reward tokens deposited by admin"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "rewards_distributed",
+            "docs": [
+              "Cumulative reward tokens actually distributed to users"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "PDA bump seed"
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "version",
+            "docs": [
+              "Schema version for migration safety"
+            ],
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PoolCreated",
+      "docs": [
+        "Emitted when a new pool is created.",
+        "",
+        "`pool` is the pool PDA address; `pool_id` is the human-readable id (also used in seeds)."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pool",
+            "docs": [
+              "Pool PDA address."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "pool_id",
+            "docs": [
+              "Pool identifier used in PDA seeds / UI routing."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "authority",
+            "docs": [
+              "Pool authority after creation."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "stake_mint",
+            "docs": [
+              "Mint of the token users stake."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "reward_mint",
+            "docs": [
+              "Mint of the token distributed as rewards."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "stake_vault",
+            "docs": [
+              "Vault that custody staked tokens."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "reward_vault",
+            "docs": [
+              "Vault that custody reward tokens."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "apr_bps",
+            "docs": [
+              "Annual percentage rate expressed in basis points."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "lock_duration",
+            "docs": [
+              "Minimum lock duration (seconds) applied to new stakes."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "cooldown_duration",
+            "docs": [
+              "Cooldown duration (seconds) between unstake request and withdrawal."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "deposit_cap",
+            "docs": [
+              "Maximum total stake allowed in the pool (0 may mean \"no cap\", depending on program logic)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "docs": [
+              "Unix timestamp recorded by the instruction."
+            ],
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PoolParamsUpdated",
+      "docs": [
+        "Emitted when pool parameters are updated.",
+        "",
+        "Only `Some` fields were updated in this transaction; `None` means unchanged."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pool",
+            "docs": [
+              "Pool PDA address."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "pool_id",
+            "docs": [
+              "Pool identifier used in PDA seeds / UI routing."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "authority",
+            "docs": [
+              "Authority that performed the update."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "apr_bps",
+            "docs": [
+              "New APR in basis points, if updated."
+            ],
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "lock_duration",
+            "docs": [
+              "New lock duration (seconds), if updated."
+            ],
+            "type": {
+              "option": "i64"
+            }
+          },
+          {
+            "name": "cooldown_duration",
+            "docs": [
+              "New cooldown duration (seconds), if updated."
+            ],
+            "type": {
+              "option": "i64"
+            }
+          },
+          {
+            "name": "deposit_cap",
+            "docs": [
+              "New deposit cap, if updated."
+            ],
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "timestamp",
+            "docs": [
+              "Unix timestamp recorded by the instruction."
+            ],
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PoolPauseToggled",
+      "docs": [
+        "Emitted when a pool's paused state is toggled."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pool",
+            "docs": [
+              "Pool PDA address."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "pool_id",
+            "docs": [
+              "Pool identifier used in PDA seeds / UI routing."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "authority",
+            "docs": [
+              "Authority that toggled the state (pause authority / admin)."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "is_paused",
+            "docs": [
+              "Whether the pool is paused after the toggle."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "timestamp",
+            "docs": [
+              "Unix timestamp recorded by the instruction."
+            ],
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RewardsClaimed",
+      "docs": [
+        "Emitted when a user claims accumulated rewards from a pool."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pool",
+            "docs": [
+              "Pool PDA address."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "pool_id",
+            "docs": [
+              "Pool identifier used in PDA seeds / UI routing."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "user",
+            "docs": [
+              "User wallet that claimed rewards."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "claimed_amount",
+            "docs": [
+              "Reward tokens transferred to the user in this instruction (delta)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "total_rewards_distributed_after",
+            "docs": [
+              "Pool cumulative `rewards_distributed` after this claim."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "docs": [
+              "Unix timestamp recorded by the instruction."
+            ],
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RewardsFunded",
+      "docs": [
+        "Emitted when reward tokens are deposited into the reward vault and the emission schedule is set."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pool",
+            "docs": [
+              "Pool PDA address."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "pool_id",
+            "docs": [
+              "Pool identifier used in PDA seeds / UI routing."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "authority",
+            "docs": [
+              "Funding authority (typically the pool authority / admin)."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "funding_amount",
+            "docs": [
+              "Tokens moved admin → vault in this instruction (delta)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "duration_seconds",
+            "docs": [
+              "Emission duration configured for this funding action."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "reward_rate_per_second",
+            "docs": [
+              "Reward emission rate derived from funding and duration."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "total_rewards_funded_after",
+            "docs": [
+              "Cumulative `total_rewards_funded` on the pool after this instruction."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "docs": [
+              "Unix timestamp recorded by the instruction."
+            ],
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Staked",
+      "docs": [
+        "Emitted when a user stakes tokens into a pool."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pool",
+            "docs": [
+              "Pool PDA address."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "pool_id",
+            "docs": [
+              "Pool identifier used in PDA seeds / UI routing."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "user",
+            "docs": [
+              "User wallet that staked."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "docs": [
+              "Stake deposited in this instruction (delta)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "user_amount_after",
+            "docs": [
+              "User active stake balance after staking."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "pool_total_staked_after",
+            "docs": [
+              "Pool total staked after staking."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "docs": [
+              "Unix timestamp recorded by the instruction."
+            ],
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "UnstakeRequested",
+      "docs": [
+        "Emitted when a user requests to unstake (moves stake into pending withdrawal)."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pool",
+            "docs": [
+              "Pool PDA address."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "pool_id",
+            "docs": [
+              "Pool identifier used in PDA seeds / UI routing."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "user",
+            "docs": [
+              "User wallet that requested the unstake."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "docs": [
+              "Amount moved from active stake into pending withdrawal (delta)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "user_amount_after",
+            "docs": [
+              "User active stake balance after the request."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "pending_withdrawal_after",
+            "docs": [
+              "User pending withdrawal balance after the request."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "unlock_timestamp",
+            "docs": [
+              "Timestamp at which withdrawal becomes available."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "pool_total_staked_after",
+            "docs": [
+              "Pool total staked after moving the user's stake out of active stake."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "docs": [
+              "Unix timestamp recorded by the instruction."
+            ],
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "UserPosition",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "docs": [
+              "Owner of this position"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "pool",
+            "docs": [
+              "Pool this position belongs to"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "docs": [
+              "Currently staked amount"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "reward_debt",
+            "docs": [
+              "Reward debt for accumulator math (scaled by PRECISION)"
+            ],
+            "type": "u128"
+          },
+          {
+            "name": "pending_rewards",
+            "docs": [
+              "Accumulated but unclaimed rewards"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "pending_withdrawal",
+            "docs": [
+              "Tokens in cooldown, awaiting withdrawal"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "deposit_timestamp",
+            "docs": [
+              "Timestamp of last deposit (used for lock_duration enforcement)"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "unlock_timestamp",
+            "docs": [
+              "Timestamp after which pending_withdrawal can be withdrawn"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "cooldown_start",
+            "docs": [
+              "Timestamp when cooldown started (0 if no active cooldown)"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "PDA bump seed"
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "version",
+            "docs": [
+              "Schema version for migration safety"
+            ],
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Withdrawn",
+      "docs": [
+        "Emitted when a user withdraws previously-requested unstaked tokens."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pool",
+            "docs": [
+              "Pool PDA address."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "pool_id",
+            "docs": [
+              "Pool identifier used in PDA seeds / UI routing."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "user",
+            "docs": [
+              "User wallet that withdrew."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "withdrawn_amount",
+            "docs": [
+              "Tokens withdrawn to the user in this instruction (delta)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "user_amount_after",
+            "docs": [
+              "User active stake balance after withdrawal."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "pending_withdrawal_after",
+            "docs": [
+              "User pending withdrawal balance after withdrawal."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "docs": [
+              "Unix timestamp recorded by the instruction."
+            ],
+            "type": "i64"
+          }
+        ]
+      }
+    }
+  ]
+}

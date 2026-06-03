@@ -2,6 +2,7 @@ import {
   PublicKey,
   Connection,
   Transaction,
+  VersionedTransaction,
   TransactionInstruction,
   Signer,
 } from "@solana/web3.js";
@@ -18,23 +19,23 @@ import type { Staking } from "../../../target/types/staking";
 
 export interface StakeWallet {
   publicKey: PublicKey;
-  signTransaction: (tx: Transaction) => Promise<Transaction>;
-  signAllTransactions: (txs: Transaction[]) => Promise<Transaction[]>;
+  signTransaction: <T extends Transaction | VersionedTransaction>(tx: T) => Promise<T>;
+  signAllTransactions: <T extends Transaction | VersionedTransaction>(txs: T[]) => Promise<T[]>;
 }
 
-class WalletAdapterWallet implements Wallet {
+class WalletAdapterWallet {
   constructor(
     public publicKey: PublicKey,
-    private signFn: (tx: Transaction) => Promise<Transaction>,
-    private signAllFn: (txs: Transaction[]) => Promise<Transaction[]>,
+    private signFn: (tx: Transaction | VersionedTransaction) => Promise<Transaction | VersionedTransaction>,
+    private signAllFn: (txs: (Transaction | VersionedTransaction)[]) => Promise<(Transaction | VersionedTransaction)[]>,
   ) {}
 
-  async signTransaction(tx: Transaction): Promise<Transaction> {
-    return this.signFn(tx);
+  async signTransaction<T extends Transaction | VersionedTransaction>(tx: T): Promise<T> {
+    return this.signFn(tx) as Promise<T>;
   }
 
-  async signAllTransactions(txs: Transaction[]): Promise<Transaction[]> {
-    return this.signAllFn(txs);
+  async signAllTransactions<T extends Transaction | VersionedTransaction>(txs: T[]): Promise<T[]> {
+    return this.signAllFn(txs) as Promise<T[]>;
   }
 
   async signMessage(msg: Uint8Array): Promise<Uint8Array> {
@@ -52,7 +53,7 @@ function createStakeProvider(
     wallet.signAllTransactions.bind(wallet),
   );
 
-  return new AnchorProvider(connection, adapterWallet as Wallet, {
+  return new AnchorProvider(connection,     adapterWallet as unknown as Wallet, {
     commitment: "confirmed",
     skipPreflight: false,
   });
@@ -122,8 +123,7 @@ export async function claimRewards(
       userRewardAta,
       rewardVault,
       tokenProgram: TOKEN_PROGRAM_ID,
-      systemProgram: SYSTEM_PROGRAM_ID,
-    })
+    } as any)
     .transaction();
 
   const { blockhash } = await provider.connection.getLatestBlockhash();
@@ -154,7 +154,7 @@ export async function claimRewards(
     try {
       const signedTx = await originalWallet.signTransaction(tx);
       const signature = await provider.connection.sendTransaction(signedTx, [], {
-        commitment: "confirmed",
+        preflightCommitment: "confirmed",
       });
       await provider.connection.confirmTransaction(signature, "confirmed");
       return signature;

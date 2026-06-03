@@ -8,5 +8,3 @@ docker-compose.yml
 .gitignore
 .env
 *.log
-pnpm-lock.yaml
-pnpm-store

@@ -1,19 +1,23 @@
 # ---------- deps ----------
-FROM node:20-alpine AS deps
+FROM node:22-slim AS deps
 
 WORKDIR /app
 
 RUN corepack enable && corepack prepare pnpm@latest --activate
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+COPY staking_client/package.json staking_client/pnpm-lock.yaml staking_client/pnpm-workspace.yaml ./
+RUN pnpm install --frozen-lockfile --ignore-scripts
+RUN pnpm rebuild
 
 # ---------- builder ----------
-FROM node:20-alpine AS builder
+FROM node:22-slim AS builder
+
+RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+COPY staking_client/ .
+COPY target/ /target/
 
 ENV NEXT_TELEMETRY_DISABLED=1
 
@@ -21,7 +25,9 @@ RUN npm exec prisma generate
 RUN npm run build
 
 # ---------- runner ----------
-FROM node:20-alpine AS runner
+FROM node:22-slim AS runner
+
+RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -29,8 +35,7 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 
-RUN addgroup -S nextjs
-RUN adduser -S nextjs -G nextjs
+RUN groupadd -r nextjs && useradd -r -g nextjs nextjs
 
 COPY --from=builder /app/public ./public
 

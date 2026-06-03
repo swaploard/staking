@@ -1,7 +1,7 @@
 import { AnchorProvider, Program, Wallet } from '@coral-xyz/anchor'
 import { Connection, PublicKey, Transaction } from '@solana/web3.js'
 import type { Staking } from '../../target/types/staking'
-import IDL from '../../target/idl/staking.json'
+import IDL from '../idl/staking.json'
 
 // ============================================================================
 // Program constants
@@ -24,12 +24,12 @@ export interface AdapterWallet {
   signAllTransactions: (txs: Transaction[]) => Promise<Transaction[]>;
 }
 
-class WalletAdapterWallet implements Wallet {
+class WalletAdapterWallet {
   constructor(
     public publicKey: PublicKey,
     private signFn: (tx: Transaction) => Promise<Transaction>,
     private signAllFn: (txs: Transaction[]) => Promise<Transaction[]>,
-  ) {}
+  ) { }
 
   async signTransaction(tx: Transaction): Promise<Transaction> {
     return this.signFn(tx);
@@ -51,7 +51,7 @@ export function getProvider(connection: Connection, wallet: AdapterWallet): Anch
     wallet.signAllTransactions.bind(wallet),
   );
 
-  return new AnchorProvider(connection, adapterWallet as Wallet, {
+  return new AnchorProvider(connection, adapterWallet as unknown as Wallet, {
     commitment: 'confirmed',
     skipPreflight: false,
   });

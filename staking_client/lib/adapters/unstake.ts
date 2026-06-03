@@ -18,11 +18,11 @@ import type { Staking } from "../../../target/types/staking";
 
 export interface StakeWallet {
   publicKey: PublicKey;
-  signTransaction: (tx: Transaction) => Promise<Transaction>;
-  signAllTransactions: (txs: Transaction[]) => Promise<Transaction[]>;
+  signTransaction: (tx: Transaction | VersionedTransaction) => Promise<Transaction | VersionedTransaction>;
+  signAllTransactions: (txs: (Transaction | VersionedTransaction)[]) => Promise<(Transaction | VersionedTransaction)[]>;
 }
 
-class WalletAdapterWallet implements Wallet {
+class WalletAdapterWallet {
    constructor(
      public publicKey: PublicKey,
      private signFn: (tx: Transaction | VersionedTransaction) => Promise<Transaction | VersionedTransaction>,
@@ -52,7 +52,7 @@ function createStakeProvider(
     wallet.signAllTransactions.bind(wallet),
   );
 
-  return new AnchorProvider(connection, adapterWallet as Wallet, {
+  return new AnchorProvider(connection, adapterWallet as unknown as Wallet, {
     commitment: "confirmed",
     skipPreflight: false,
   });
@@ -138,7 +138,7 @@ export async function unstake(
      try {
        const signedTx = await originalWallet.signTransaction(tx);
        const signature = await provider.connection.sendTransaction(signedTx, [], {
-         commitment: "confirmed",
+         preflightCommitment: "confirmed",
        });
        await provider.connection.confirmTransaction(signature, "confirmed");
        return signature;

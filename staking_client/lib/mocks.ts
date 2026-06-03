@@ -96,6 +96,9 @@ export const MOCK_USER_POSITIONS: UserPosition[] = [
     stakedAt: Date.now() - 30 * 24 * 60 * 60 * 1000, // 30 days ago
     unstakedAt: null,
     cooldownPeriod: 0,
+    cooldownStart: null,
+    unlockTimestamp: null,
+    pendingWithdrawal: 0,
   },
   {
     poolId: 'pool-3',
@@ -105,6 +108,9 @@ export const MOCK_USER_POSITIONS: UserPosition[] = [
     stakedAt: Date.now() - 60 * 24 * 60 * 60 * 1000, // 60 days ago
     unstakedAt: null,
     cooldownPeriod: 0,
+    cooldownStart: null,
+    unlockTimestamp: null,
+    pendingWithdrawal: 0,
   },
   {
     poolId: 'pool-4',
@@ -114,5 +120,8 @@ export const MOCK_USER_POSITIONS: UserPosition[] = [
     stakedAt: Date.now() - 14 * 24 * 60 * 60 * 1000, // 14 days ago
     unstakedAt: null,
     cooldownPeriod: 0,
+    cooldownStart: null,
+    unlockTimestamp: null,
+    pendingWithdrawal: 0,
   },
 ];
